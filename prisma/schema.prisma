@@ -1,0 +1,79 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["relationJoins"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         Int      @id @unique
+  telegramId String   @unique
+  username   String?
+  firstName  String?
+  lastName   String?
+  langCode   String   @default("ru")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  subscriptions Subscription[]
+  Payment       Payment[]
+  BotSettings   BotSettings[]
+}
+
+model Subscription {
+  id          String     @id @default(uuid())
+  userId      Int
+  user        User       @relation(fields: [userId], references: [id])
+  plan        String
+  price       Float
+  startDate   DateTime
+  endDate     DateTime
+  isActive    Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  Payment     Payment[]
+  VPNServer   VPNServer? @relation(fields: [VPNServerId], references: [id])
+  VPNServerId String?
+}
+
+model Payment {
+  id             String        @id @default(uuid())
+  userId         Int
+  user           User          @relation(fields: [userId], references: [id])
+  subscriptionId String?
+  subscription   Subscription? @relation(fields: [subscriptionId], references: [id])
+  amount         Float
+  currency       String
+  paymentMethod  String
+  status         String
+  transactionId  String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+}
+
+model VPNServer {
+  id           String   @id @default(uuid())
+  name         String
+  location     String
+  ipAddress    String
+  isActive     Boolean  @default(true)
+  maxUsers     Int
+  currentUsers Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  subscriptions Subscription[]
+}
+
+model BotSettings {
+  id        String   @id @default(uuid())
+  userId    Int?
+  user      User?    @relation(fields: [userId], references: [id])
+  key       String
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
