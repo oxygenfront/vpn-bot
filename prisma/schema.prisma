@@ -8,72 +8,56 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// Пользователи
 model User {
-  id         Int      @id @unique
-  telegramId String   @unique
-  username   String?
-  firstName  String?
-  lastName   String?
-  langCode   String   @default("ru")
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  subscriptions Subscription[]
-  Payment       Payment[]
-  BotSettings   BotSettings[]
+  id            Int                @id @unique
+  telegramId    String             @unique
+  username      String?
+  firstName     String?
+  lastName      String?
+  langCode      String             @default("ru")
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  subscriptions UserSubscription[] // Связь с активными подписками пользователей
 }
 
-model Subscription {
-  id          String     @id @default(uuid())
-  userId      Int
-  user        User       @relation(fields: [userId], references: [id])
-  plan        String
-  price       Float
-  startDate   DateTime
-  endDate     DateTime
-  isActive    Boolean    @default(true)
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-  Payment     Payment[]
-  VPNServer   VPNServer? @relation(fields: [VPNServerId], references: [id])
-  VPNServerId String?
+// Тарифы (Base, Standard, Premium)
+model Plan {
+  id                Int                @id @default(autoincrement())
+  name              String             @unique // "Base", "Standard", "Premium"
+  trafficLimit      String // "100 GB", "200 GB", "Unlimited"
+  subscriptionPlans SubscriptionPlan[] // Связь с шаблонами подписок
 }
 
-model Payment {
-  id             String        @id @default(uuid())
-  userId         Int
-  user           User          @relation(fields: [userId], references: [id])
-  subscriptionId String?
-  subscription   Subscription? @relation(fields: [subscriptionId], references: [id])
-  amount         Float
-  currency       String
-  paymentMethod  String
-  status         String
-  transactionId  String?
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+// Диапазоны устройств (1-3, 3-5, 5-9)
+model DeviceRange {
+  id                Int                @id @default(autoincrement())
+  range             String             @unique // "1-3", "3-5", "5-9"
+  subscriptionPlans SubscriptionPlan[] // Связь с шаблонами подписок
 }
 
-model VPNServer {
-  id           String   @id @default(uuid())
-  name         String
-  location     String
-  ipAddress    String
-  isActive     Boolean  @default(true)
-  maxUsers     Int
-  currentUsers Int      @default(0)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+// Шаблоны подписок (комбинация тарифа, устройств и длительности)
+model SubscriptionPlan {
+  id                Int                @id @default(autoincrement())
+  planId            Int
+  deviceRangeId     Int
+  months            Int // 1, 3, 6, 12
+  price             Float // Стоимость в рублях
+  plan              Plan               @relation(fields: [planId], references: [id])
+  deviceRange       DeviceRange        @relation(fields: [deviceRangeId], references: [id])
+  userSubscriptions UserSubscription[] // Связь с активными подписками пользователей
 
-  subscriptions Subscription[]
+  @@unique([planId, deviceRangeId, months]) // Уникальность комбинации тариф+устройства+месяцы
 }
 
-model BotSettings {
-  id        String   @id @default(uuid())
-  userId    Int?
-  user      User?    @relation(fields: [userId], references: [id])
-  key       String
-  value     String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+// Активные подписки пользователей
+model UserSubscription {
+  id                 Int              @id @default(autoincrement())
+  userId             Int
+  subscriptionPlanId Int
+  purchaseDate       DateTime         @default(now()) // Дата покупки
+  user               User             @relation(fields: [userId], references: [id])
+  subscriptionPlan   SubscriptionPlan @relation(fields: [subscriptionPlanId], references: [id])
+
+  @@index([userId]) // Индекс для быстрого поиска по пользователю
 }
