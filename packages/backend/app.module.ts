@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { PrismaModule } from 'nestjs-prisma';
-import { TelegramModule } from './bot/telegram.module';
+import { TelegramModule } from "./telegram.module";
 
 @Module({
     imports: [

@@ -60,11 +60,12 @@ export class SixthLevelService {
             .format('D MMMM YYYY [г.]'))}
         `
 
-        const { url } = await this.cloudPaimentsService.createPaymentLink(pricePerMonth, paymentDescription, paymentInvoiceId, paymentAccountId)
+        // const { url } = await this.cloudPaimentsService.createPaymentLink(pricePerMonth, paymentDescription, paymentInvoiceId, paymentAccountId)
+        const url = `https://730d-194-87-30-250.ngrok-free.app?chatId=${paymentAccountId}&invoiceId=${paymentInvoiceId}&amount=${pricePerMonth}`
         const keyboard = {
             inline_keyboard: [ [ {
                 text: 'Оплатить подписку',
-                url
+                web_app: { url },
             } ], [ {
                 text: 'Назад',
                 callback_data: `month_${ctx.session.selectedMonths}`,
