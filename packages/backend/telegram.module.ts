@@ -35,14 +35,14 @@ import { WebhookController } from "./webhooks/webhook.controller";
                 const webhookDomain = configService.get<string>('WEBHOOK_DOMAIN') || '';
                 return {
                     token: configService.get<string>('TELEGRAM_TOKEN') || '',
-                    launchOptions: {
-                        webhook: {
-                            domain: webhookDomain,
-                            path: '/telegram-webhook',
-                            allowedUpdates: [ 'message', 'callback_query', 'edited_message', 'channel_post', 'inline_query' ],
-                            dropPendingUpdates: true,
-                        },
-                    },
+                    // launchOptions: {
+                    //     webhook: {
+                    //         domain: webhookDomain,
+                    //         path: '/telegram-webhook',
+                    //         allowedUpdates: [ 'message', 'callback_query', 'edited_message', 'channel_post', 'inline_query' ],
+                    //         dropPendingUpdates: true,
+                    //     },
+                    // },
                 };
             },
         })
