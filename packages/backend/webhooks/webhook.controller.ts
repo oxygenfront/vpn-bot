@@ -3,17 +3,23 @@ import { Body, Controller, Post } from '@nestjs/common';
 import { InjectBot } from "nestjs-telegraf";
 import { Telegraf } from 'telegraf';
 import { CloudPaymentsService } from "../services/cloudpayments.service";
+import { LinkGeneratorService } from "../services/link-generator.service";
+import { XuiApiService } from "../services/xui-api.service";
 import { TelegramUtils } from "../utils/telegram-utils";
+
 
 @Controller('webhook')
 export class WebhookController {
 
     constructor(
         private readonly cloudPaymentsService: CloudPaymentsService,
+        private readonly linkGeneratorService: LinkGeneratorService,
+        private readonly xuiApiService: XuiApiService,
         private readonly telegramUtils: TelegramUtils,
         @InjectBot() private readonly bot: Telegraf
     ) {
     }
+
 
     @Post('cloudpayments')
     async handleWebhook( @Body() body: any ) {
@@ -23,11 +29,13 @@ export class WebhookController {
             Token,
             InvoiceId,
             AccountId,
-            Amount
+            Amount,
+            Data
         } = body;
-
-
         const chatId = AccountId
+        const { CloudPayments } = JSON.parse(Data)
+        const messageId = CloudPayments?.messageId;
+        const period = Number(CloudPayments.recurrent.period)
         if ( !chatId ) {
             console.error(`Не найден chat_id для InvoiceId: ${InvoiceId}`);
             return { code: 0 };
@@ -35,32 +43,92 @@ export class WebhookController {
 
         switch ( Status ) {
             case 'Completed':
-                console.log(`Успешный платеж ${TransactionId}, InvoiceId: ${InvoiceId}`);
-                try {
-                    await this.bot.telegram.sendMessage(
-                        chatId,
-                        `Оплата на сумму ${Amount} RUB прошла успешно! Заказ: ${InvoiceId}`,
-                    );
-                } catch ( error ) {
-                    console.error('Ошибка отправки сообщения в Telegram:', error);
-                }
-
                 if ( Token ) {
-                    console.log(`Токен для подписки: ${Token}`);
+                    const tgId = AccountId
+                    const username = AccountId
                     try {
+                        const sessionCookie = await this.xuiApiService.login()
+                        if ( !sessionCookie ) {
+                            await this.bot.telegram.sendMessage(chatId, 'Ошибка: не удалось авторизоваться в панели.');
+                            return;
+                        }
+
+
+                        const {
+                            client,
+                            streamSettings
+                        } = await this.xuiApiService.getOrCreateClient({
+                            sessionCookie,
+                            username,
+                            tgId,
+                            expiredDays: 30 * period,
+                            limit: 100
+                        });
+
+                        console.log(JSON.parse(streamSettings))
+
+
                         const subscriptionId = await this.cloudPaymentsService.createSubscription(
                             Token,
                             Amount,
-                            InvoiceId,
                             AccountId,
                             'Month',
-                            1,
+                            period,
                         );
-                        console.log(`Создана подписка: ${subscriptionId}`);
-                        await this.bot.telegram.sendMessage(
-                            chatId,
-                            `Подписка успешно создана! ID подписки: ${subscriptionId}`,
-                        );
+
+                        const link = this.linkGeneratorService.generateVlessLink(client, streamSettings)
+
+                        const messageText = `
+*Оплата успешно завершена\\!*  
+💰 Сумма: *${this.telegramUtils.escapeMarkdown(Amount)} RUB*  
+📋 Заказ: *${InvoiceId}*  
+
+✨ *Подписка активирована\\!*  
+🆔 ID подписки: \`${subscriptionId}\`  
+
+🔗 *Ваша ссылка для подключения:*
+${this.telegramUtils.escapeMarkdown(`${process.env.PANEL_HOST}:2096/sub/${client.subId}`)}
+
+🔒 *VLESS подключение:*  
+\`${this.telegramUtils.escapeMarkdown(link)}\` 
+`
+                        const replyMarkup = {
+                            inline_keyboard: [ [ {
+                                text: '🔙 Назад',
+                                callback_data: 'buy_vpn'
+                            }, {
+                                text: '👤 Мой аккаунт',
+                                callback_data: 'my_account'
+                            } ] ]
+                        }
+                        if ( messageId ) {
+                            try {
+                                await this.bot.telegram.editMessageText(
+                                    chatId, messageId, undefined, messageText
+                                    , {
+                                        reply_markup: replyMarkup,
+                                        parse_mode: 'MarkdownV2',
+                                    },
+                                );
+
+                            } catch ( editError ) {
+                                try {
+                                    await this.bot.telegram.deleteMessage(chatId, messageId);
+                                } finally {
+                                    await this.bot.telegram.sendMessage(chatId, messageText, {
+                                        parse_mode: 'MarkdownV2',
+                                        reply_markup: replyMarkup,
+                                    })
+                                }
+                            }
+                        } else {
+                            await this.bot.telegram.sendMessage(chatId, messageText, {
+                                parse_mode: 'MarkdownV2',
+                                reply_markup: replyMarkup,
+                            });
+                        }
+
+
                     } catch ( error ) {
                         console.error('Ошибка при создании подписки:', error);
                         await this.bot.telegram.sendMessage(
@@ -72,7 +140,6 @@ export class WebhookController {
                 break;
 
             case 'Declined':
-                console.log(`Платеж ${TransactionId} отклонен`);
                 await this.bot.telegram.sendMessage(
                     chatId,
                     `Оплата отклонена. Заказ: ${InvoiceId}. Попробуйте снова.`,
@@ -80,11 +147,9 @@ export class WebhookController {
                 break;
 
             case 'Check':
-                console.log(`Проверка платежа ${TransactionId}`);
                 break;
 
             case 'Confirmed':
-                console.log(`Платеж ${TransactionId} подтвержден`);
                 break;
         }
 

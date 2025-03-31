@@ -41,7 +41,7 @@ export class XuiApiService {
                                  sessionCookie,
                                  username,
                                  tgId,
-                                 inboundId = 1,
+                                 inboundId = 2,
                                  expiredDays,
                                  limit,
                              }: IGetOrCreateClient ) {

@@ -37,5 +37,7 @@ export interface MyContext extends Context {
         selectedPlan?: AvailablePlansEnum
         deviceRangeId?: number
         selectedMonths?: number
+        messageId?: number
+        userId?: number
     };
 }

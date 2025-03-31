@@ -61,6 +61,7 @@ import { WebhookController } from "./webhooks/webhook.controller";
         FifthLevelService,
         SixthLevelService,
         CloudPaymentsService,
+        WebhookController
     ],
     controllers: [ WebhookController, TelegramWebhookController ]
 })

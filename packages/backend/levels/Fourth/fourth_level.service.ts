@@ -318,49 +318,4 @@ ${this.telegramUtils.escapeMarkdown(settingNames[setting] || setting)}: ${isEnab
             await ctx.reply('Произошла ошибка при обновлении настройки\\. Попробуйте позже\\.');
         }
     }
-
-    async handleProcessCardPayment( ctx: MyContext ) {
-        const username = ctx.callbackQuery?.from.username;
-        const tgId = String(ctx.callbackQuery?.from.id);
-        console.log(tgId);
-        if ( !username || !tgId ) {
-            await ctx.reply('Ошибка: не удалось получить данные пользователя.');
-            return;
-        }
-
-        try {
-            const sessionCookie = await this.xuiApiService.login();
-            if ( !sessionCookie ) {
-                await ctx.reply('Ошибка: не удалось авторизоваться в панели.');
-                return;
-            }
-
-            const {
-                client,
-                streamSettings
-            } = await this.xuiApiService.getOrCreateClient({
-                sessionCookie,
-                username,
-                tgId,
-                expiredDays: 30,
-                limit: 100
-            });
-
-            const link = this.linkGeneratorService.generateVlessLink(client, streamSettings);
-
-            await ctx.editMessageText(`Ваша ссылка на подключение\n${link}`, {
-                reply_markup: {
-                    inline_keyboard: [ [ {
-                        text: 'Назад',
-                        callback_data: 'buy_vpn'
-                    } ] ]
-                },
-                parse_mode: 'MarkdownV2',
-            });
-        } catch ( error ) {
-            console.error('Fetch error:', error.response?.data || error.message);
-            await ctx.reply('Произошла ошибка при обработке запроса. Попробуйте позже.');
-        }
-    }
-
 }

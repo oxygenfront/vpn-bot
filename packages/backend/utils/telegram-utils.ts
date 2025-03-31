@@ -6,12 +6,12 @@ export class TelegramUtils {
     async sendOrEditMessage( ctx: MyContext, text: string, keyboard?: any ) {
         try {
             if ( ctx.callbackQuery ) {
-                await ctx.editMessageText(text, {
+                return await ctx.editMessageText(text, {
                     reply_markup: keyboard,
                     parse_mode: 'MarkdownV2'
                 });
             } else {
-                await ctx.reply(text, {
+                return await ctx.reply(text, {
                     reply_markup: keyboard,
                     parse_mode: 'MarkdownV2'
                 });

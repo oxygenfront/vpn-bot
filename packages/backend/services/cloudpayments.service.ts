@@ -18,46 +18,43 @@ export class CloudPaymentsService {
     }
 
 
-    async createPaymentLink(
-        amount: number,
-        description: string,
-        invoiceId: string,
-        accountId: string,
-        email?: string,
-    ): Promise<{ url: string, token: string }> {
-        const url = `${this.apiUrl}/orders/create`;
-        const data = {
-            Amount: amount,
-            Currency: 'RUB',
-            Description: description,
-            InvoiceId: invoiceId,
-            AccountId: accountId,
-            ...(email && { Email: email }),
-            requireToken: true
-        };
-
-        const response = await firstValueFrom(
-            this.httpService.post(url, data, {
-                auth: { username: this.publicId, password: this.apiSecret },
-            }),
-        );
-
-        console.log(response.data);
-
-        if ( response.data.Success ) {
-            return {
-                url: response.data.Model.Url,
-                token: response.data.Model.CardToken || undefined
-            };
-        } else {
-            throw new Error(response.data.Message || 'Ошибка при создании счета');
-        }
-    }
+    // async createPaymentLink(
+    //     amount: number,
+    //     description: string,
+    //     invoiceId: string,
+    //     accountId: string,
+    //     email?: string,
+    // ): Promise<{ url: string, token: string }> {
+    //     const url = `${this.apiUrl}/orders/create`;
+    //     const data = {
+    //         Amount: amount,
+    //         Currency: 'RUB',
+    //         Description: description,
+    //         InvoiceId: invoiceId,
+    //         AccountId: accountId,
+    //         ...(email && { Email: email }),
+    //         requireToken: true
+    //     };
+    //
+    //     const response = await firstValueFrom(
+    //         this.httpService.post(url, data, {
+    //             auth: { username: this.publicId, password: this.apiSecret },
+    //         }),
+    //     );
+    //
+    //     if ( response.data.Success ) {
+    //         return {
+    //             url: response.data.Model.Url,
+    //             token: response.data.Model.CardToken || undefined
+    //         };
+    //     } else {
+    //         throw new Error(response.data.Message || 'Ошибка при создании счета');
+    //     }
+    // }
 
     async createSubscription(
         token: string,
         amount: number,
-        invoiceId: string,
         accountId: string,
         interval: string,
         period: number,
@@ -85,7 +82,6 @@ export class CloudPaymentsService {
             }),
         );
 
-        console.log(response.data);
 
         if ( response.data.Success ) {
             return response.data.Model.Id;

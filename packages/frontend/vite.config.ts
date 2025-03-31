@@ -7,7 +7,7 @@ export default defineConfig({
     server: {
         port: 5173,
         allowedHosts: [
-            '730d-194-87-30-250.ngrok-free.app', // Ваш ngrok-хост
+            'a2df-194-87-30-250.ngrok-free.app', // Ваш ngrok-хост
             'localhost', // Для локального тестирования
         ],
     },

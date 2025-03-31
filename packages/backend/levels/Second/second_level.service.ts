@@ -44,7 +44,10 @@ ${subscriptions}
                     { text: '📱 Мои устройства', callback_data: 'my_devices' },
                 ],
                 [
-                    { text: '📊 Статистика', callback_data: 'statistics' },
+                    {
+                        text: 'Отменить подписку',
+                        url: 'https://my.cloudpayments.ru/'
+                    },
                     {
                         text: '💳 История платежей',
                         callback_data: 'payment_history'

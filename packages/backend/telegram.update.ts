@@ -39,6 +39,7 @@ export class TelegramUpdate {
 
     @Start()
     async onStart( @Ctx() ctx: MyContext ) {
+        ctx.session.step = null;
         await this.firstLevelService.handleStart(ctx);
     }
 
@@ -228,12 +229,6 @@ export class TelegramUpdate {
             const setting = ctx.callbackQuery.data.replace('toggle_', '');
             await this.fourthLevelService.handleToggleSetting(ctx, setting);
         }
-    }
-
-    @Action('process_card_payment')
-    async handleProcessCardPayment( @Ctx() ctx: MyContext ) {
-        await ctx.answerCbQuery();
-        await this.fourthLevelService.handleProcessCardPayment(ctx)
     }
 
 }
