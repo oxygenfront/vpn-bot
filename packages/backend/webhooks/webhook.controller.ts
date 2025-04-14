@@ -68,6 +68,7 @@ export class WebhookController {
                         })
 
                         if ( boughtPlan ) {
+                            console.log(PlanTrafficLimits[boughtPlan.plan.name])
                             const {
                                 client,
                                 streamSettings
@@ -76,7 +77,7 @@ export class WebhookController {
                                 username,
                                 tgId,
                                 expiredDays: 30 * period,
-                                limit: PlanTrafficLimits[boughtPlan.plan.name],
+                                limit: PlanTrafficLimits[boughtPlan.plan.name] as number,
                             });
 
                             const user = await this.prismaService.user.upsert({
