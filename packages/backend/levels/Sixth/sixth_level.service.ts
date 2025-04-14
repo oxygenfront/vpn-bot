@@ -35,6 +35,18 @@ export class SixthLevelService {
                 months: ctx.session.selectedMonths,
             },
         })
+
+        const fetchedPrice = await this.prismaService.subscriptionPlan.findFirst({
+            where: {
+                planId: ctx.session.selectedPlan,
+                deviceRangeId: ctx.session.deviceRangeId,
+                months: 1
+            }
+        })
+
+        const defaultPrice = fetchedPrice?.price
+
+
         if ( !subscription ) {
             const text = 'Такой тариф не найден'
             const keyboard = {
@@ -52,21 +64,20 @@ export class SixthLevelService {
         }
 
         const pricePerMonth = Number(
-            this.telegramUtils.escapeMarkdown(String(Math.ceil(subscription.price / (ctx.session.selectedMonths as number)))),
+            this.telegramUtils.escapeMarkdown(String(Math.floor(subscription.price / (ctx.session.selectedMonths as number)))),
         )
         const randomNumber = Math.floor(1000000000 + Math.random() * 9000000000)
         const messageId = 'callback_query' in ctx.update && ctx.update.callback_query.message?.message_id
         const paymentAccountId = 'callback_query' in ctx.update && ctx.update.callback_query.from.id
-        const paymentDescription = `Оплата №${randomNumber}`
         const paymentInvoiceId = String(randomNumber)
         const text = `
 ✨ *Перед оплатой проверьте данные \\!*  
 
-📋 *Тариф:*  *__${this.telegramUtils.escapeMarkdown(Plans[subscription.planId])}__*  
+📋 *Тариф:*  *__${this.telegramUtils.escapeMarkdown(Plans[subscription.planId])}__*
 
 📱 *Максимальное кол\\-во устройств:*  *_${this.telegramUtils.escapeMarkdown(MembersInPlan[subscription.deviceRangeId])}_*  
 
-💰 *Стоимость подписки за месяц:*  *_${pricePerMonth}_* ₽
+💰 *Цена подписки в месяц:*  ~${defaultPrice}₽~ ➤ *_${pricePerMonth}₽_* 
 
 🧾 *Общая стоимость тарифа:* *_${subscription.price}_* ₽
 
@@ -74,7 +85,7 @@ export class SixthLevelService {
             dayjs().add(subscription.months, 'month').format('DD.MM.YYYY'),
         )}_*  
 `
-        const url = `${process.env.FRONTEND_DOMAIN}?chatId=${paymentAccountId}&invoiceId=${paymentInvoiceId}&amount=${subscription.price}&months=${ctx.session.selectedMonths}&messageId=${ctx.callbackQuery && 'data' in ctx.callbackQuery && ctx.callbackQuery.message?.message_id}`
+        const url = `${process.env.FRONTEND_DOMAIN}?chatId=${paymentAccountId}&invoiceId=${paymentInvoiceId}&amount=${subscription.price}&months=${ctx.session.selectedMonths}&messageId=${messageId}&paymentType=pay`
         const keyboard = {
             inline_keyboard: [
                 [

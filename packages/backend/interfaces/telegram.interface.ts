@@ -27,8 +27,14 @@ export enum Plans {
     Премиум = 3
 }
 
+export enum PlanTrafficLimits {
+    Base = 100,
+    Standard = 200,
+    Premium = 0
+}
 
 export interface MyContext extends Context {
+    match: () => void,
     session: {
         promocode: string;
         step: StepsEnum | null;
@@ -37,7 +43,17 @@ export interface MyContext extends Context {
         selectedPlan?: AvailablePlansEnum
         deviceRangeId?: number
         selectedMonths?: number
-        messageId?: number
-        userId?: number
+
+        // Notifications
+        expiryReminder?: boolean
+        newsAndUpdates?: boolean
+        promotions?: boolean
+        serviceStatus?: boolean
+
+        // Pagination
+        page?: number
+
+        // Renew
+        autoRenew?: boolean
     };
 }

@@ -1,13 +1,25 @@
 import { Injectable } from "@nestjs/common";
-import { MyContext } from "../../interfaces/telegram.interface";
+import { PrismaService } from "nestjs-prisma";
+import {
+    AvailablePlansEnum,
+    MyContext,
+    Plans
+} from "../../interfaces/telegram.interface";
 import { UserService } from "../../services/user.service";
 import { TelegramUtils } from "../../utils/telegram-utils";
+import * as dayjs from "dayjs";
+
+interface InlineKeyboardButton {
+    text: string;
+    callback_data: string;
+}
 
 @Injectable()
 export class ThirdLevelService {
     constructor(
         private readonly telegramUtils: TelegramUtils,
         private readonly userService: UserService,
+        private readonly prismaService: PrismaService
     ) {
     }
 
@@ -72,14 +84,170 @@ _Не нашли ответ? Задайте вопрос поддержке\\!_`
 
         const keyboard = {
             inline_keyboard: [
-                [ { text: '💬 Задать вопрос', callback_data: 'ask_question' } ],
+                [ {
+                    text: '💬 Задать вопрос',
+                    url: 'https://t.me/vpn_by_oxy/8/34'
+                } ],
                 [
-                    { text: '📖 Все вопросы', callback_data: 'all_faq' },
-                    { text: '👨‍💻 Поддержка', callback_data: 'help' },
+                    {
+                        text: '📖 Все вопросы',
+                        url: 'https://t.me/vpn_by_oxy/1/18'
+                    },
+                    {
+                        text: '👨‍💻 Поддержка',
+                        url: 'https://t.me/vpn_by_oxy/8/34'
+                    },
                 ],
                 [ { text: '🔙 Назад', callback_data: 'start' } ],
             ],
         };
+
+        await this.telegramUtils.sendOrEditMessage(ctx, text, keyboard);
+    }
+
+    async handleMySubscriptions( ctx: MyContext ) {
+        const telegramId = String(ctx.callbackQuery?.from.id);
+        const itemsPerPage = 4;
+
+        const totalSubscriptions = await this.prismaService.userSubscription.count({
+            where: {
+                user: {
+                    telegramId,
+                },
+            },
+        });
+
+        const totalPages = Math.ceil(totalSubscriptions / itemsPerPage);
+
+        ctx.session.page = ctx.session.page || 1;
+        let currentPage = Number(ctx.session.page);
+        if ( currentPage < 1 ) currentPage = 1;
+        if ( currentPage > totalPages ) currentPage = totalPages;
+
+        ctx.session.page = currentPage;
+
+        const skip = (currentPage - 1) * itemsPerPage;
+        const take = itemsPerPage;
+
+        const subscriptions = await this.prismaService.userSubscription.findMany({
+            where: {
+                user: {
+                    telegramId
+                },
+            },
+            skip: skip > 0 ? skip : 0,
+            take,
+            include: {
+                subscriptionPlan: {
+                    include: {
+                        plan: true,
+                        deviceRange: true,
+                    },
+                },
+            },
+        });
+
+
+        if ( !subscriptions.length && currentPage === 1 ) {
+            const text = `
+📋 *У вас пока нет активных подписок\\!*
+Начните пользоваться VPN, выбрав подходящий тариф\\.
+`;
+            const keyboard: { inline_keyboard: InlineKeyboardButton[][] } = {
+                inline_keyboard: [ [
+                    {
+                        text: '🔙 В главное меню',
+                        callback_data: 'start'
+                    },
+                    {
+                        text: '🔙 Назад',
+                        callback_data: 'my_account'
+                    }
+                ] ],
+            };
+            await this.telegramUtils.sendOrEditMessage(ctx, text, keyboard);
+            return;
+        }
+
+        if ( !subscriptions.length ) {
+            ctx.session.page = 1;
+            return this.handleMySubscriptions(ctx);
+        }
+
+        let text = `
+📋 *Ваши подписки*
+Вот список ваших активных подписок\\. Вы можете управлять каждой из них, нажав на соответствующую кнопку\\.
+`;
+
+        subscriptions.forEach(( sub, index ) => {
+            const isActive = dayjs().isBefore(dayjs(sub.expiredDate));
+            const status = isActive ? '🟢 Активна' : '🔴 Истекла';
+            const planName = sub.subscriptionPlan?.plan?.name || 'Неизвестный тариф';
+            const deviceRange = sub.subscriptionPlan?.deviceRange?.range || 'Неизвестно';
+            const expiredDate = dayjs(sub.expiredDate).format('D MMMM YYYY [г.]');
+            const pricePerMonth = Math.floor(sub.subscriptionPlan.price / sub.subscriptionPlan.months)
+
+            text += `
+*Подписка №${skip + index + 1}*
+🆔 ID: \`${this.telegramUtils.escapeMarkdown(sub.id)}\`
+📋 Тариф: *${this.telegramUtils.escapeMarkdown(Plans[AvailablePlansEnum[planName.toLowerCase()]])}*
+📱 Устройств: *${this.telegramUtils.escapeMarkdown(deviceRange)}*
+⏳ Истекает: *${this.telegramUtils.escapeMarkdown(expiredDate)}*
+💰 Цена за месяц: *${pricePerMonth}₽*
+${status}
+`;
+        });
+
+        if ( totalPages > 1 ) {
+            text += `\n📄 Страница ${currentPage} из ${totalPages}`;
+        }
+
+        const keyboard: { inline_keyboard: InlineKeyboardButton[][] } = {
+            inline_keyboard: [],
+        };
+
+        subscriptions.forEach(( sub, index ) => {
+            keyboard.inline_keyboard.push([
+                {
+                    text: `Подписка №${skip + index + 1} ${dayjs().isBefore(dayjs(sub.expiredDate)) ? '🟢' : '🔴'}`,
+                    callback_data: `sub_${sub.id}`,
+                },
+            ]);
+        });
+
+        if ( totalPages > 1 ) {
+            const paginationButtons: InlineKeyboardButton[] = [];
+            if ( currentPage > 1 ) {
+                paginationButtons.push({
+                    text: '⬅️ Назад',
+                    callback_data: `page_${currentPage - 1}`,
+                });
+            }
+            if ( currentPage < totalPages ) {
+                paginationButtons.push({
+                    text: 'Вперед ➡️',
+                    callback_data: `page_${currentPage + 1}`,
+                });
+            }
+            keyboard.inline_keyboard.push(paginationButtons);
+        }
+
+        keyboard.inline_keyboard.push([
+            {
+                text: '💳 Платежи',
+                callback_data: 'payment_history'
+            },
+        ], [
+            {
+                text: '🔙 В главное меню',
+                callback_data: 'start'
+            },
+            {
+                text: '🔙 Назад',
+                callback_data: 'my_account'
+            },
+
+        ]);
 
         await this.telegramUtils.sendOrEditMessage(ctx, text, keyboard);
     }

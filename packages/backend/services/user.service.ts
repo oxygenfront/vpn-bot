@@ -1,27 +1,24 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'nestjs-prisma';
-import { MyContext } from '../interfaces/telegram.interface';
+import { MyContext, Plans } from '../interfaces/telegram.interface';
+import * as dayjs from 'dayjs';
+import { TelegramUtils } from "../utils/telegram-utils";
 
 @Injectable()
 export class UserService {
-    constructor( private readonly prismaService: PrismaService ) {
+    constructor(
+        private readonly prismaService: PrismaService,
+        private readonly telegramUtils: TelegramUtils
+    ) {
     }
 
-    async getUserSubscriptions( ctx: MyContext ): Promise<string> {
-        // Реализация с Prisma
-        return '• 🟢 Premium до 01\\.05\\.2024\n• 🟡 Standard до 01\\.06\\.2024';
-    }
-
-    async getUserDays( ctx: MyContext ): Promise<number> {
-        return 30; // Реализация с Prisma
-    }
 
     async getActiveDevices( ctx: MyContext ): Promise<number> {
-        return 2; // Реализация с Prisma
+        return 2;
     }
 
     async getUserStatus( ctx: MyContext ): Promise<string> {
-        return '💎 Premium'; // Реализация с Prisma
+        return '💎 Premium';
     }
 
     async getUserDevices( ctx: MyContext ) {
@@ -40,7 +37,7 @@ export class UserService {
                 lastActive: '15.04.2024',
                 traffic: 12.8
             },
-        ]; // Реализация с Prisma
+        ];
     }
 
     async getAvailableDevices( ctx: MyContext ): Promise<number> {
@@ -50,19 +47,19 @@ export class UserService {
     }
 
     async getDeviceLimit( ctx: MyContext ): Promise<number> {
-        return 3; // Реализация с Prisma
+        return 3;
     }
 
     async getSelectedPlan( ctx: MyContext ) {
-        return { name: 'Premium', duration: 12, price: 40 }; // Реализация с Prisma или сессией
+        return { name: 'Premium', duration: 12, price: 40 };
     }
 
     async getPromoDiscount( promocode: string ): Promise<number> {
-        return 15; // Реализация с Prisma
+        return 15;
     }
 
     async getPromoExpiry( promocode: string ): Promise<string> {
-        return '01.05.2024'; // Реализация с Prisma
+        return '01.05.2024';
     }
 
     async getUserNotificationSettings( ctx: MyContext ) {
@@ -71,7 +68,7 @@ export class UserService {
             newsAndUpdates: true,
             promotions: false,
             serviceStatus: true
-        }; // Реализация с Prisma
+        };
     }
 
     async getUserPaymentHistory( ctx: MyContext ) {
@@ -90,6 +87,6 @@ export class UserService {
                 plan: 'Standard',
                 status: 'Оплачено'
             },
-        ]; // Реализация с Prisma
+        ];
     }
 }

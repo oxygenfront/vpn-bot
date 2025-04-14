@@ -1,12 +1,15 @@
 // webhook.controller.ts
 import { Body, Controller, Post } from '@nestjs/common';
+import { PrismaService } from "nestjs-prisma";
 import { InjectBot } from "nestjs-telegraf";
 import { Telegraf } from 'telegraf';
+import { Plans, PlanTrafficLimits } from "../interfaces/telegram.interface";
 import { CloudPaymentsService } from "../services/cloudpayments.service";
 import { LinkGeneratorService } from "../services/link-generator.service";
 import { XuiApiService } from "../services/xui-api.service";
 import { TelegramUtils } from "../utils/telegram-utils";
-
+import { v4 as uuidv4 } from "uuid";
+import * as dayjs from "dayjs";
 
 @Controller('webhook')
 export class WebhookController {
@@ -16,6 +19,7 @@ export class WebhookController {
         private readonly linkGeneratorService: LinkGeneratorService,
         private readonly xuiApiService: XuiApiService,
         private readonly telegramUtils: TelegramUtils,
+        private readonly prismaService: PrismaService,
         @InjectBot() private readonly bot: Telegraf
     ) {
     }
@@ -24,7 +28,7 @@ export class WebhookController {
     @Post('cloudpayments')
     async handleWebhook( @Body() body: any ) {
         const {
-            TransactionId,
+            SubscriptionId,
             Status,
             Token,
             InvoiceId,
@@ -33,9 +37,6 @@ export class WebhookController {
             Data
         } = body;
         const chatId = AccountId
-        const { CloudPayments } = JSON.parse(Data)
-        const messageId = CloudPayments?.messageId;
-        const period = Number(CloudPayments.recurrent.period)
         if ( !chatId ) {
             console.error(`Не найден chat_id для InvoiceId: ${InvoiceId}`);
             return { code: 0 };
@@ -44,6 +45,9 @@ export class WebhookController {
         switch ( Status ) {
             case 'Completed':
                 if ( Token ) {
+                    const { CloudPayments } = JSON.parse(Data)
+                    const messageId = CloudPayments?.messageId;
+                    const period = Number(CloudPayments.recurrent.period)
                     const tgId = AccountId
                     const username = AccountId
                     try {
@@ -53,82 +57,151 @@ export class WebhookController {
                             return;
                         }
 
+                        const boughtPlan = await this.prismaService.subscriptionPlan.findFirst({
+                            where: {
+                                price: Number(Amount),
+                                months: CloudPayments.recurrent.period
+                            },
+                            include: {
+                                plan: true
+                            }
+                        })
 
-                        const {
-                            client,
-                            streamSettings
-                        } = await this.xuiApiService.getOrCreateClient({
-                            sessionCookie,
-                            username,
-                            tgId,
-                            expiredDays: 30 * period,
-                            limit: 100
-                        });
+                        if ( boughtPlan ) {
+                            const {
+                                client,
+                                streamSettings
+                            } = await this.xuiApiService.getOrCreateClient({
+                                sessionCookie,
+                                username,
+                                tgId,
+                                expiredDays: 30 * period,
+                                limit: PlanTrafficLimits[boughtPlan.plan.name],
+                            });
 
-                        console.log(JSON.parse(streamSettings))
+                            const user = await this.prismaService.user.upsert({
+                                where: {
+                                    telegramId: chatId,
+                                },
+                                create: {
+                                    id: uuidv4(),
+                                    telegramId: chatId,
+                                    cardToken: Token,
+                                },
+                                update: {
+                                    updatedAt: new Date(),
+                                },
+                            });
 
 
-                        const subscriptionId = await this.cloudPaymentsService.createSubscription(
-                            Token,
-                            Amount,
-                            AccountId,
-                            'Month',
-                            period,
-                        );
+                            const subscriptionData = await this.cloudPaymentsService.createSubscription(
+                                Token,
+                                Amount,
+                                AccountId,
+                                'Month',
+                                period,
+                            );
+                            const response = await this.prismaService.userSubscription.findFirst({
+                                where: {
+                                    id: SubscriptionId
+                                },
+                                select: {
+                                    expiredDate: true
+                                }
+                            })
 
-                        const link = this.linkGeneratorService.generateVlessLink(client, streamSettings)
+                            const expiredDate = response ? dayjs(response.expiredDate).add(boughtPlan.months, 'month').toDate() : dayjs().add(boughtPlan.months, 'month').toDate()
+                            const {
+                                vlessLink,
+                                urlLink
+                            } = this.linkGeneratorService.generateConnectionLinks(client, streamSettings);
 
-                        const messageText = `
+                            await this.prismaService.userSubscription.upsert({
+                                where: {
+                                    id: SubscriptionId
+                                },
+                                update: {
+                                    nextBillingDate: new Date(subscriptionData.NextTransactionDateIso),
+                                    expiredDate: expiredDate,
+                                    lastInvoiceId: InvoiceId,
+                                },
+                                create: {
+                                    id: SubscriptionId,
+                                    status: 'Active',
+                                    userId: user.id,
+                                    lastInvoiceId: InvoiceId,
+                                    subscriptionPlanId: boughtPlan.id,
+                                    vlessLinkConnection: vlessLink,
+                                    urlLinkConnection: urlLink,
+                                    nextBillingDate: new Date(subscriptionData.NextTransactionDateIso),
+                                    startBillingDate: new Date(),
+                                    expiredDate: dayjs().add(boughtPlan.months, 'month').toDate(),
+                                },
+                            });
+
+
+                            if ( CloudPayments?.type === 'pay' ) {
+                                const messageText = `
 *Оплата успешно завершена\\!*  
 💰 Сумма: *${this.telegramUtils.escapeMarkdown(Amount)} RUB*  
 📋 Заказ: *${InvoiceId}*  
 
 ✨ *Подписка активирована\\!*  
-🆔 ID подписки: \`${subscriptionId}\`  
+🆔 ID подписки: \`${SubscriptionId}\`  
 
 🔗 *Ваша ссылка для подключения:*
-${this.telegramUtils.escapeMarkdown(`${process.env.PANEL_HOST}:2096/sub/${client.subId}`)}
+${this.telegramUtils.escapeMarkdown(urlLink)}
 
 🔒 *VLESS подключение:*  
-\`${this.telegramUtils.escapeMarkdown(link)}\` 
+\`${this.telegramUtils.escapeMarkdown(vlessLink)}\` 
 `
-                        const replyMarkup = {
-                            inline_keyboard: [ [ {
-                                text: '🔙 Назад',
-                                callback_data: 'buy_vpn'
-                            }, {
-                                text: '👤 Мой аккаунт',
-                                callback_data: 'my_account'
-                            } ] ]
-                        }
-                        if ( messageId ) {
-                            try {
-                                await this.bot.telegram.editMessageText(
-                                    chatId, messageId, undefined, messageText
-                                    , {
-                                        reply_markup: replyMarkup,
-                                        parse_mode: 'MarkdownV2',
-                                    },
-                                );
+                                const replyMarkup = {
+                                    inline_keyboard: [ [
+                                        {
+                                            text: 'Что дальше ?',
+                                            url: 'https://telegra.ph/CHto-delat-posle-oplaty-03-31'
+                                        },
+                                        {
+                                            text: '👤 Мой аккаунт',
+                                            callback_data: 'my_account'
+                                        }
+                                    ], [
+                                        {
+                                            text: '🔙 Назад',
+                                            callback_data: 'buy_vpn'
+                                        }
+                                    ] ]
+                                }
+                                if ( messageId ) {
+                                    try {
+                                        await this.bot.telegram.editMessageText(
+                                            chatId, messageId, undefined, messageText
+                                            , {
+                                                reply_markup: replyMarkup,
+                                                parse_mode: 'MarkdownV2',
+                                            },
+                                        );
 
-                            } catch ( editError ) {
-                                try {
-                                    await this.bot.telegram.deleteMessage(chatId, messageId);
-                                } finally {
+                                    } catch ( editError ) {
+                                        try {
+                                            await this.bot.telegram.deleteMessage(chatId, messageId);
+                                        } finally {
+                                            await this.bot.telegram.sendMessage(chatId, messageText, {
+                                                parse_mode: 'MarkdownV2',
+                                                reply_markup: replyMarkup,
+                                            })
+                                        }
+                                    }
+                                } else {
                                     await this.bot.telegram.sendMessage(chatId, messageText, {
                                         parse_mode: 'MarkdownV2',
                                         reply_markup: replyMarkup,
-                                    })
+                                    });
                                 }
                             }
-                        } else {
-                            await this.bot.telegram.sendMessage(chatId, messageText, {
-                                parse_mode: 'MarkdownV2',
-                                reply_markup: replyMarkup,
-                            });
+
+
                         }
-
-
                     } catch ( error ) {
                         console.error('Ошибка при создании подписки:', error);
                         await this.bot.telegram.sendMessage(
@@ -145,10 +218,10 @@ ${this.telegramUtils.escapeMarkdown(`${process.env.PANEL_HOST}:2096/sub/${client
                     `Оплата отклонена. Заказ: ${InvoiceId}. Попробуйте снова.`,
                 );
                 break;
-
+            case 'Cancelled':
+                break
             case 'Check':
                 break;
-
             case 'Confirmed':
                 break;
         }

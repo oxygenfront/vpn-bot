@@ -1,7 +1,13 @@
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { PrismaService } from "nestjs-prisma";
+import { InjectBot } from "nestjs-telegraf";
 import { firstValueFrom } from 'rxjs';
+import { Telegraf } from "telegraf";
+import { MyContext } from "../interfaces/telegram.interface";
+import { FourthLevelService } from "../levels/Fourth/fourth_level.service";
+import * as dayjs from 'dayjs';
 
 @Injectable()
 export class CloudPaymentsService {
@@ -12,45 +18,22 @@ export class CloudPaymentsService {
     constructor(
         private readonly httpService: HttpService,
         private readonly configService: ConfigService,
+        private readonly fourthLevelService: FourthLevelService,
+        private readonly prismaService: PrismaService,
+        @InjectBot() private readonly bot: Telegraf
     ) {
         this.publicId = this.configService.get<string>('CLOUDPAYMENTS_PUBLIC_ID') as string;
         this.apiSecret = this.configService.get<string>('CLOUDPAYMENTS_API_SECRET') as string;
+
     }
 
-
-    // async createPaymentLink(
-    //     amount: number,
-    //     description: string,
-    //     invoiceId: string,
-    //     accountId: string,
-    //     email?: string,
-    // ): Promise<{ url: string, token: string }> {
-    //     const url = `${this.apiUrl}/orders/create`;
-    //     const data = {
-    //         Amount: amount,
-    //         Currency: 'RUB',
-    //         Description: description,
-    //         InvoiceId: invoiceId,
-    //         AccountId: accountId,
-    //         ...(email && { Email: email }),
-    //         requireToken: true
-    //     };
-    //
-    //     const response = await firstValueFrom(
-    //         this.httpService.post(url, data, {
-    //             auth: { username: this.publicId, password: this.apiSecret },
-    //         }),
-    //     );
-    //
-    //     if ( response.data.Success ) {
-    //         return {
-    //             url: response.data.Model.Url,
-    //             token: response.data.Model.CardToken || undefined
-    //         };
-    //     } else {
-    //         throw new Error(response.data.Message || 'Ошибка при создании счета');
-    //     }
-    // }
+    private async responseFunction( url, data ) {
+        return await firstValueFrom(
+            this.httpService.post(url, data, {
+                auth: { username: this.publicId, password: this.apiSecret },
+            }),
+        )
+    }
 
     async createSubscription(
         token: string,
@@ -58,12 +41,9 @@ export class CloudPaymentsService {
         accountId: string,
         interval: string,
         period: number,
-    ): Promise<string> {
+    ) {
 
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        const startDate = tomorrow.toISOString().split('.')[0];
-
+        const StartDate = dayjs().add(period, 'month')
         const url = `${this.apiUrl}/subscriptions/create`;
         const data = {
             Token: token,
@@ -73,20 +53,70 @@ export class CloudPaymentsService {
             Currency: 'RUB',
             Interval: interval,
             Period: period,
-            StartDate: startDate,
-        };
+            StartDate,
+        }
 
-        const response = await firstValueFrom(
-            this.httpService.post(url, data, {
-                auth: { username: this.publicId, password: this.apiSecret },
-            }),
-        );
-
+        const response = await this.responseFunction(url, data);
 
         if ( response.data.Success ) {
-            return response.data.Model.Id;
+            return response.data.Model;
         } else {
             throw new Error(response.data.Message || 'Ошибка при создании подписки');
         }
+    }
+
+    async updateSubscription( ctx: MyContext, subId: string, action: string ) {
+        const url = action === 'Cancellation' ? `${this.apiUrl}/subscriptions/cancel` : `${this.apiUrl}/subscriptions/update`;
+        if ( action === 'Activate' ) {
+            const userSubscription = await this.prismaService.userSubscription.findFirst({
+                where: {
+                    id: subId,
+                }
+            })
+            if ( !userSubscription ) {
+                await ctx.reply('Не удалось активировать подписку, обратитесь в техподдержку')
+                return
+            }
+
+            const data = {
+                Id: subId,
+                Status: 'Active'
+            }
+            const response = await this.responseFunction(url, data)
+            if ( response.data.Success ) {
+                await this.prismaService.userSubscription.update({
+                    where: {
+                        id: subId
+                    },
+                    data: {
+                        status: 'Active'
+                    }
+                })
+                await this.fourthLevelService.handleSubscriptionDetails(ctx, subId);
+                return
+            }
+        } else if ( action === 'Cancellation' ) {
+            const data = {
+                Id: subId,
+            }
+            const response = await this.responseFunction(url, data)
+
+            if ( response.data.Success ) {
+                await this.prismaService.userSubscription.update({
+                    where: {
+                        id: subId,
+                    },
+                    data: {
+                        status: 'Cancelled'
+                    }
+                })
+                await this.fourthLevelService.handleSubscriptionDetails(ctx, subId);
+                return
+            }
+        } else {
+            return 'Что то пошло не так :( '
+        }
+
+
     }
 }

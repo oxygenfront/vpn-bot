@@ -6,9 +6,6 @@ export default defineConfig({
     plugins: [ react() ],
     server: {
         port: 5173,
-        allowedHosts: [
-            'a2df-194-87-30-250.ngrok-free.app', // Ваш ngrok-хост
-            'localhost', // Для локального тестирования
-        ],
+        allowedHosts: [ 'b6c7-194-87-30-250.ngrok-free.app', 'localhost' ],
     },
 })

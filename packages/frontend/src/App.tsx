@@ -6,6 +6,7 @@ export const App = () => {
     const [ amount, setAmount ] = useState<number>(0)
     const [ months, setMonths ] = useState<number>(0)
     const [ messageId, setMessageId ] = useState<number>(0)
+    const [ paymentType, setPaymentType ] = useState<string>()
     const PUBLIC_KEY = import.meta.env.VITE_CLOUDPAYMENTS_PUBLIC_KEY
     useEffect(() => {
         if ( !window.Telegram?.WebApp ) {
@@ -25,11 +26,13 @@ export const App = () => {
         const urlAmount = Number(urlParams.get('amount'))
         const urlMonths = Number(urlParams.get('months'))
         const messageId = Number(urlParams.get('messageId'))
+        const paymentType = String(urlParams.get('paymentType'))
         if ( !(urlChatId && urlInvoiceId) || urlAmount <= 0 ) {
             console.error('Некорректные параметры подписки')
             return
         }
 
+        setPaymentType(paymentType)
         setMessageId(messageId)
         setMonths(urlMonths)
         setChatId(urlChatId)
@@ -40,10 +43,10 @@ export const App = () => {
     }, [])
 
     useEffect(() => {
-        if ( amount > 0 && chatId && invoiceId ) {
+        if ( amount > 0 && chatId && invoiceId && paymentType ) {
             handlePayment()
         }
-    }, [ amount, chatId, invoiceId ])
+    }, [ amount, chatId, invoiceId, paymentType ])
 
     const handlePayment = () => {
         if ( !window.cp?.CloudPayments ) {
@@ -79,6 +82,7 @@ export const App = () => {
             CloudPayments: {
                 CustomerReceipt: receipt,
                 messageId: messageId,
+                type: paymentType,
                 recurrent: {
                     interval: 'Month',
                     period: months,
@@ -97,7 +101,7 @@ export const App = () => {
         }
 
         widget.pay('charge', {
-            publicId: `${PUBLIC_KEY}`,
+            publicId: PUBLIC_KEY,
             description: 'Подписка на VPN-сервис',
             amount: amount,
             currency: 'RUB',
@@ -110,5 +114,5 @@ export const App = () => {
         })
     }
 
-    return
+    return null
 }

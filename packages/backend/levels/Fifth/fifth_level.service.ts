@@ -31,19 +31,33 @@ export class FifthLevelService {
         const text = 'Выберите количество человек, которых планируете' +
             ' добавить в подписку'
         const keyboard = {
-            inline_keyboard: [ [ {
-                text: `от 1 до 3 — ${prices[0].price}₽`,
-                callback_data: 'deviceRangeId_1',
-            }, {
-                text: `от 3 до 5 — ${prices[1].price}₽`,
-                callback_data: 'deviceRangeId_2',
-            } ], [ {
-                text: `от 5 до 7 — ${prices[2].price}₽`,
-                callback_data: 'deviceRangeId_3',
-            }, {
-                text: 'Назад',
-                callback_data: `plan_${AvailablePlansEnum[ctx.session.selectedPlan as number]}`,
-            } ] ]
+            inline_keyboard: [
+                [
+                    {
+                        text: `📱 от 1 до 3 — ${prices[0].price}₽`,
+                        callback_data: 'deviceRangeId_1'
+                    },
+
+                ],
+                [
+                    {
+                        text: `📱 от 3 до 5 — ${prices[1].price}₽`,
+                        callback_data: 'deviceRangeId_2'
+                    },
+                ],
+                [
+                    {
+                        text: `📱 от 5 до 7 — ${prices[2].price}₽`,
+                        callback_data: 'deviceRangeId_3'
+                    },
+                ],
+                [
+                    {
+                        text: '🔙 Назад',
+                        callback_data: `plan_${AvailablePlansEnum[ctx.session.selectedPlan as number]}`
+                    },
+                ],
+            ],
         }
         await this.telegramUtils.sendOrEditMessage(ctx, text, keyboard);
     }

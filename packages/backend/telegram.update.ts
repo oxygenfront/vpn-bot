@@ -1,3 +1,4 @@
+import { PrismaService } from "nestjs-prisma";
 import { Action, Command, Ctx, On, Start, Update } from 'nestjs-telegraf';
 import { CallbackQuery } from 'telegraf/types';
 import {
@@ -11,6 +12,7 @@ import { FourthLevelService } from "./levels/Fourth/fourth_level.service";
 import { SecondLevelService } from "./levels/Second/second_level.service";
 import { SixthLevelService } from "./levels/Sixth/sixth_level.service";
 import { ThirdLevelService } from "./levels/Third/third_service.service";
+import { CloudPaymentsService } from "./services/cloudpayments.service";
 
 @Update()
 export class TelegramUpdate {
@@ -21,21 +23,26 @@ export class TelegramUpdate {
         private readonly fourthLevelService: FourthLevelService,
         private readonly fifthLevelService: FifthLevelService,
         private readonly sixthLevelService: SixthLevelService,
+        private readonly cloudPaymentsService: CloudPaymentsService
     ) {
     }
 
-    // Type guards
     private isCallbackQuery( query: any ): query is CallbackQuery.DataQuery {
         return query?.data !== undefined;
     }
 
-    // First level bot
     @Action('start')
     async handleStart( @Ctx() ctx: MyContext ) {
-        ctx.session.step = null;
         await ctx.answerCbQuery()
+        ctx.session.step = null;
         await this.firstLevelService.handleStart(ctx);
     }
+
+    // @Action('clear_all')
+    // async handleClearAll( @Ctx() ctx: MyContext ) {
+    //     await ctx.answerCbQuery()
+    //     await this.firstLevelService.handleClearAll(ctx)
+    // }
 
     @Start()
     async onStart( @Ctx() ctx: MyContext ) {
@@ -48,10 +55,6 @@ export class TelegramUpdate {
         ctx.session = { step: null, promocode: '' }
         await ctx.reply('Сессия очищена')
     }
-
-// ------------------------------------------------------------------
-
-    // Second level
 
     @Action('my_account')
     async handleMyAccount( @Ctx() ctx: MyContext ) {
@@ -75,23 +78,6 @@ export class TelegramUpdate {
         await this.secondLevelService.handleBuyToken(ctx);
     }
 
-    @Action('how_use_token')
-    async handleHowUseToken( @Ctx() ctx: MyContext ) {
-        await ctx.answerCbQuery()
-        await this.secondLevelService.handleHowUseToken(ctx);
-    }
-
-    @Action('help')
-    async handleHelp( @Ctx() ctx: MyContext ) {
-        await ctx.answerCbQuery()
-        await this.secondLevelService.handleHelp(ctx)
-    }
-
-    @Command('help')
-    async onHelp( @Ctx() ctx: MyContext ) {
-        await this.secondLevelService.handleHelp(ctx)
-    }
-
     @Action('settings')
     async handleSettings( @Ctx() ctx: MyContext ) {
         await ctx.answerCbQuery()
@@ -102,11 +88,6 @@ export class TelegramUpdate {
     async onSettings( @Ctx() ctx: MyContext ) {
         await this.secondLevelService.handleSettings(ctx)
     }
-
-
-// ------------------------------------------------------------------
-
-    // Third level
 
     @Action('promocode')
     async handlePromoCode( @Ctx() ctx: MyContext ) {
@@ -143,42 +124,6 @@ export class TelegramUpdate {
         await this.thirdLevelService.handleFaq(ctx);
     }
 
-// ------------------------------------------------------------------
-
-    // Fourth level
-
-
-    // Устройства
-    @Action('devices')
-    async handleDevices( @Ctx() ctx: MyContext ) {
-        await ctx.answerCbQuery();
-        await this.fourthLevelService.handleDevices(ctx);
-    }
-
-    @Action('add_device')
-    async handleAddDevice( @Ctx() ctx: MyContext ) {
-        await ctx.answerCbQuery();
-        await this.fourthLevelService.handleAddDevice(ctx);
-    }
-
-    @Action(/^remove_device_(\d+)$/)
-    async handleRemoveDevice( @Ctx() ctx: MyContext ) {
-        await ctx.answerCbQuery();
-        if ( this.isCallbackQuery(ctx.callbackQuery) ) {
-            const match = ctx.callbackQuery.data.match(/^remove_device_(\d+)$/);
-            if ( match ) {
-                await this.fourthLevelService.handleRemoveDevice(ctx, parseInt(match[1]));
-            }
-        }
-    }
-
-    @Action('refresh_devices')
-    async handleRefreshDevices( @Ctx() ctx: MyContext ) {
-        await ctx.answerCbQuery();
-        await this.fourthLevelService.handleDevices(ctx);
-    }
-
-    // Выбор подписки
     @Action(/^plan_(base|standard|premium)$/)
     async handlePlanSelect( @Ctx() ctx: MyContext ) {
         await ctx.answerCbQuery();
@@ -200,35 +145,39 @@ export class TelegramUpdate {
         await this.sixthLevelService.handleViewChosenPlan(ctx)
     }
 
-    @Action(/^pay_(card|crypto)$/)
-    async handlePaymentMethod( @Ctx() ctx: MyContext ) {
-        await ctx.answerCbQuery();
-        if ( this.isCallbackQuery(ctx.callbackQuery) ) {
-            const method = ctx.callbackQuery.data.replace('pay_', '');
-            await this.fourthLevelService.handlePaymentProcess(ctx, method);
-        }
-    }
-
     @Action('payment_history')
     async handlePaymentHistory( @Ctx() ctx: MyContext ) {
         await ctx.answerCbQuery();
         await this.fourthLevelService.handlePaymentHistory(ctx);
     }
 
-    // Настройки
-    @Action('notifications')
-    async handleNotifications( @Ctx() ctx: MyContext ) {
+    @Action("my_subscriptions")
+    async handleMySubscriptions( @Ctx() ctx: MyContext ) {
         await ctx.answerCbQuery();
-        await this.fourthLevelService.handleNotifications(ctx);
+        await this.thirdLevelService.handleMySubscriptions(ctx);
     }
 
-    @Action(/^toggle_\w+$/)
-    async handleToggleSetting( @Ctx() ctx: MyContext ) {
+    @Action(/^page_(\d+)$/)
+    async handlePagination( ctx: MyContext ) {
         await ctx.answerCbQuery();
-        if ( this.isCallbackQuery(ctx.callbackQuery) ) {
-            const setting = ctx.callbackQuery.data.replace('toggle_', '');
-            await this.fourthLevelService.handleToggleSetting(ctx, setting);
-        }
+        ctx.session.page = Number(ctx.match[1]);
+        await this.handleMySubscriptions(ctx);
     }
+
+    @Action(/^sub_(.+)$/)
+    async handleSubscriptionDetails( ctx: MyContext ) {
+        const subId = ctx.match[1]
+        await ctx.answerCbQuery();
+        await this.fourthLevelService.handleSubscriptionDetails(ctx, subId);
+    }
+
+    @Action(/^update_sub-([^-]+)-(Cancellation|Activate)$/)
+    async cancelSubscription( @Ctx() ctx: MyContext ) {
+        const subId = ctx.match[1]
+        const action = ctx.match[2]
+        await this.cloudPaymentsService.updateSubscription(ctx, subId, action)
+        await ctx.answerCbQuery();
+    }
+
 
 }
