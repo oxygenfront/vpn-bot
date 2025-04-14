@@ -8,10 +8,10 @@
   "author": "Mark Yurkulskiy",
   "private": true,
   "scripts": {
-    "build": "backend/node_modules/.bin/nest build",
-    "start": "backend/node_modules/.bin/nest start",
-    "start:dev": "backend/node_modules/.bin/nest start --watch",
-    "start:debug": "backend/node_modules/.bin/nest start --debug --watch",
+    "build": "node_modules/.bin/nest build",
+    "start": "node_modules/.bin/nest start",
+    "start:dev": "node_modules/.bin/nest start --watch",
+    "start:debug": "node_modules/.bin/nest start --debug --watch",
     "start:prod": "node dist/main"
   },
   "dependencies": {
