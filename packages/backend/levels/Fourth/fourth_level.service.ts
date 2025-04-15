@@ -39,12 +39,12 @@ export class FourthLevelService {
 //
 //         const text = `💳 *История платежей*
 //
-// ${history.length > 0 ? '*Ваши транзакции:*' : 'У вас пока нет платежей\\.'}
+// ${history.length > 0 ? '*Ваши транзакции:*' : 'У вас пока нет платежей.'}
 // ${history
 //             .map(
 //                 ( payment, index ) => `
 // ${index + 1}. ${payment.plan} — ${payment.amount}$ 💸
-//    📅 01.${payment.month}\\.${payment.year} | ${payment.status === 'Оплачено' ? '✅' : '⚠️'} ${payment.status}`,
+//    📅 01.${payment.month}.${payment.year} | ${payment.status === 'Оплачено' ? '✅' : '⚠️'} ${payment.status}`,
 //             )
 //             .join('\n')}
 //
@@ -120,7 +120,7 @@ export class FourthLevelService {
         });
 
         if ( !subscription ) {
-            const text = '❌ Подписка не найдена\\.';
+            const text = '❌ Подписка не найдена.';
             const keyboard = {
                 inline_keyboard: [ [ {
                     text: '🔙 Назад',

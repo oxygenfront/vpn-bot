@@ -71,11 +71,11 @@ export class SixthLevelService {
         const paymentAccountId = 'callback_query' in ctx.update && ctx.update.callback_query.from.id
         const paymentInvoiceId = String(randomNumber)
         const text = `
-✨ *Перед оплатой проверьте данные \\!*  
+✨ *Перед оплатой проверьте данные !*  
 
 📋 *Тариф:*  *__${Plans[subscription.planId]}__*
 
-📱 *Максимальное кол\\-во устройств:*  *_${MembersInPlan[subscription.deviceRangeId]}_*  
+📱 *Максимальное кол-во устройств:*  *_${MembersInPlan[subscription.deviceRangeId]}_*  
 
 💰 *Цена подписки в месяц:*  ~${defaultPrice}₽~ ➤ *_${pricePerMonth}₽_* 
 

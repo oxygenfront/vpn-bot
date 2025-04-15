@@ -4,7 +4,8 @@ import { MyContext } from '../interfaces/telegram.interface';
 @Injectable()
 export class TelegramUtils {
     escapeMarkdown( text: string ): string {
-        return text.replace(/([_[\]()~>#+\-=|{}.!])/g, '\\$1');
+        // return text.replace(/([_[\]()~>#+\-=|{}.!%\\])/g, '\\$1');
+        return text.replace(/([[\]()>#+\-=|{}.!%\\])/g, '\\$1')
     }
 
     async sendOrEditMessage( ctx: MyContext, text: string, keyboard?: any ) {
