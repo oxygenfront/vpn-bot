@@ -68,7 +68,6 @@ export class WebhookController {
                         })
 
                         if ( boughtPlan ) {
-                            console.log(PlanTrafficLimits[boughtPlan.plan.name])
                             const {
                                 client,
                                 streamSettings
@@ -77,7 +76,7 @@ export class WebhookController {
                                 username,
                                 tgId,
                                 expiredDays: 30 * period,
-                                limit: PlanTrafficLimits[boughtPlan.plan.name] as number,
+                                limit: PlanTrafficLimits[boughtPlan.plan.name] as unknown as number,
                             });
 
                             const user = await this.prismaService.user.upsert({
@@ -144,17 +143,17 @@ export class WebhookController {
                             if ( CloudPayments?.type === 'pay' ) {
                                 const messageText = `
 *Оплата успешно завершена\\!*  
-💰 Сумма: *${this.telegramUtils.escapeMarkdown(Amount)} RUB*  
+💰 Сумма: *${Amount} RUB*  
 📋 Заказ: *${InvoiceId}*  
 
 ✨ *Подписка активирована\\!*  
 🆔 ID подписки: \`${SubscriptionId}\`  
 
 🔗 *Ваша ссылка для подключения:*
-${this.telegramUtils.escapeMarkdown(urlLink)}
+${urlLink}
 
 🔒 *VLESS подключение:*  
-\`${this.telegramUtils.escapeMarkdown(vlessLink)}\` 
+\`${vlessLink}\` 
 `
                                 const replyMarkup = {
                                     inline_keyboard: [ [

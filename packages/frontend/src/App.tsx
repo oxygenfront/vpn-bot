@@ -114,5 +114,5 @@ export const App = () => {
         })
     }
 
-    return null
+    return <></>
 }

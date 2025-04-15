@@ -4,14 +4,12 @@ import { PrismaService } from "nestjs-prisma";
 import { InjectBot } from "nestjs-telegraf";
 import { Telegraf } from "telegraf";
 import { MyContext, Plans } from "../../interfaces/telegram.interface";
-import { UserService } from "../../services/user.service";
 import { TelegramUtils } from "../../utils/telegram-utils";
 
 @Injectable()
 export class SecondLevelService {
     constructor(
         @InjectBot() private readonly bot: Telegraf,
-        private readonly userService: UserService,
         private readonly telegramUtils: TelegramUtils,
         private readonly prismaService: PrismaService
     ) {
@@ -26,22 +24,24 @@ export class SecondLevelService {
                 subscriptions: {
                     include: { subscriptionPlan: true }
                 }
-            }
+            },
+            orderBy: {
+                createdAt: 'desc',
+            },
         })
         const subscriptions = user ? user.subscriptions?.map(( subscription ) => {
             return `🟢 ${Plans[subscription.subscriptionPlan.planId]} до ${dayjs(subscription.expiredDate).format('DD.MM.YYYY  HH:mm:ss')}`
-        }).join(`\n------------------------------------------------------------\n`) : 'У вас нет активных подписок'
+        }).join(`\n━━━━━━━━━━━━━━━━━\n`) : 'У вас нет активных подписок'
 
-        const activeDevices = await this.userService.getActiveDevices(ctx);
-        const status = await this.userService.getUserStatus(ctx);
         const text = `👤 *Личный кабинет*
         
+${subscriptions} 
+       
 *Статистика:*
 • 📊 Дней с нами: ${user?.createdAt
             ? Math.floor(dayjs().diff(dayjs(user.createdAt), 'day'))
             : 0}
-• 🔄 Активных устройств: ${this.telegramUtils.escapeMarkdown(String(activeDevices))}
-• ⭐️ Статус: ${status}
+• ✅ Активных подписок: ${user?.subscriptions.length}
 
 *Нужна помощь?* Обратитесь в поддержку 24/7`;
 
@@ -77,7 +77,7 @@ export class SecondLevelService {
             ],
         };
 
-        await this.telegramUtils.sendOrEditMessage(ctx, this.telegramUtils.escapeMarkdown(text), keyboard);
+        await this.telegramUtils.sendOrEditMessage(ctx, text, keyboard);
     }
 
     async handleBuyToken( ctx: MyContext ) {

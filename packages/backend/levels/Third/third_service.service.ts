@@ -5,7 +5,6 @@ import {
     MyContext,
     Plans
 } from "../../interfaces/telegram.interface";
-import { UserService } from "../../services/user.service";
 import { TelegramUtils } from "../../utils/telegram-utils";
 import * as dayjs from "dayjs";
 
@@ -18,45 +17,8 @@ interface InlineKeyboardButton {
 export class ThirdLevelService {
     constructor(
         private readonly telegramUtils: TelegramUtils,
-        private readonly userService: UserService,
         private readonly prismaService: PrismaService
     ) {
-    }
-
-    async handlePromoCode( ctx: MyContext ) {
-        const text = ctx.session.promocode
-            ? `🎟 *Текущий промокод:* \`${this.telegramUtils.escapeMarkdown(ctx.session.promocode)}\`
-
-*Применённая скидка:* ${this.telegramUtils.escapeMarkdown(String(await this.userService.getPromoDiscount(ctx.session.promocode)))}%
-*Действует до:* ${this.telegramUtils.escapeMarkdown(await this.userService.getPromoExpiry(ctx.session.promocode))}
-
-Хотите использовать другой промокод?`
-            : `🎁 *Ввод промокода*
-
-Отправьте промокод одним сообщением\\.
-Промокод может быть:
-• 🏷 Персональным
-• 🎯 Акционным
-• 🎉 Праздничным
-
-_Промокод будет автоматически применен к следующей покупке_`;
-
-        const keyboard = {
-            inline_keyboard: [
-                ...(ctx.session.promocode
-                    ? [ [ {
-                        text: '🔄 Изменить промокод',
-                        callback_data: 'change_promocode'
-                    } ] ]
-                    : []),
-                [ {
-                    text: '🔙 Назад к выбору тарифа',
-                    callback_data: 'buy_vpn'
-                } ],
-            ],
-        };
-
-        await this.telegramUtils.sendOrEditMessage(ctx, text, keyboard);
     }
 
     async handleFaq( ctx: MyContext ) {
@@ -176,7 +138,7 @@ _Не нашли ответ? Задайте вопрос поддержке\\!_`
 
         let text = `
 📋 *Ваши подписки*
-Вот список ваших активных подписок\\. Вы можете управлять каждой из них, нажав на соответствующую кнопку\\.
+Вот список ваших активных подписок. Вы можете управлять каждой из них, нажав на соответствующую кнопку.
 `;
 
         subscriptions.forEach(( sub, index ) => {
@@ -189,16 +151,17 @@ _Не нашли ответ? Задайте вопрос поддержке\\!_`
 
             text += `
 *Подписка №${skip + index + 1}*
-🆔 ID: \`${this.telegramUtils.escapeMarkdown(sub.id)}\`
-📋 Тариф: *${this.telegramUtils.escapeMarkdown(Plans[AvailablePlansEnum[planName.toLowerCase()]])}*
-📱 Устройств: *${this.telegramUtils.escapeMarkdown(deviceRange)}*
-⏳ Истекает: *${this.telegramUtils.escapeMarkdown(expiredDate)}*
+🆔 ID: \`${sub.id}\`
+📋 Тариф: *${Plans[AvailablePlansEnum[planName.toLowerCase()]]}*
+📱 Устройств: *${deviceRange}*
+⏳ Истекает: *${expiredDate}*
 💰 Цена за месяц: *${pricePerMonth}₽*
 ${status}
 `;
         });
 
         if ( totalPages > 1 ) {
+
             text += `\n📄 Страница ${currentPage} из ${totalPages}`;
         }
 
@@ -232,12 +195,12 @@ ${status}
             keyboard.inline_keyboard.push(paginationButtons);
         }
 
-        keyboard.inline_keyboard.push([
+        keyboard.inline_keyboard.push(/*[
             {
                 text: '💳 Платежи',
                 callback_data: 'payment_history'
             },
-        ], [
+        ],*/ [
             {
                 text: '🔙 В главное меню',
                 callback_data: 'start'

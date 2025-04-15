@@ -89,12 +89,6 @@ export class TelegramUpdate {
         await this.secondLevelService.handleSettings(ctx)
     }
 
-    @Action('promocode')
-    async handlePromoCode( @Ctx() ctx: MyContext ) {
-        await ctx.answerCbQuery();
-        ctx.session.step = StepsEnum.PROMOCODE;
-        await this.thirdLevelService.handlePromoCode(ctx);
-    }
 
     @On('text')
     async onMessage( ctx: MyContext ) {
@@ -107,15 +101,6 @@ export class TelegramUpdate {
             })
             await this.secondLevelService.handleBuyToken(ctx)
         }
-    }
-
-
-    @Action('change_promocode')
-    async handleChangePromoCode( @Ctx() ctx: MyContext ) {
-        await ctx.answerCbQuery();
-        ctx.session.promocode = '';
-        ctx.session.step = StepsEnum.PROMOCODE;
-        await this.thirdLevelService.handlePromoCode(ctx);
     }
 
     @Action('faq')
@@ -145,11 +130,11 @@ export class TelegramUpdate {
         await this.sixthLevelService.handleViewChosenPlan(ctx)
     }
 
-    @Action('payment_history')
-    async handlePaymentHistory( @Ctx() ctx: MyContext ) {
-        await ctx.answerCbQuery();
-        await this.fourthLevelService.handlePaymentHistory(ctx);
-    }
+    // @Action('payment_history')
+    // async handlePaymentHistory( @Ctx() ctx: MyContext ) {
+    //     await ctx.answerCbQuery();
+    //     await this.fourthLevelService.handlePaymentHistory(ctx);
+    // }
 
     @Action("my_subscriptions")
     async handleMySubscriptions( @Ctx() ctx: MyContext ) {
@@ -177,6 +162,12 @@ export class TelegramUpdate {
         const action = ctx.match[2]
         await this.cloudPaymentsService.updateSubscription(ctx, subId, action)
         await ctx.answerCbQuery();
+    }
+
+    @Action(/^delete_from_user_subscription-(.+)$/)
+    async handleDeleteFromUserSubscription( @Ctx() ctx: MyContext ) {
+        const subId = ctx.match[1]
+        await this.fourthLevelService.handleDeleteFromUserSubscription(ctx, subId)
     }
 
 

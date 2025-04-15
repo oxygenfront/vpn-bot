@@ -64,7 +64,7 @@ export class SixthLevelService {
         }
 
         const pricePerMonth = Number(
-            this.telegramUtils.escapeMarkdown(String(Math.floor(subscription.price / (ctx.session.selectedMonths as number)))),
+            String(Math.floor(subscription.price / (ctx.session.selectedMonths as number))),
         )
         const randomNumber = Math.floor(1000000000 + Math.random() * 9000000000)
         const messageId = 'callback_query' in ctx.update && ctx.update.callback_query.message?.message_id
@@ -73,17 +73,17 @@ export class SixthLevelService {
         const text = `
 ✨ *Перед оплатой проверьте данные \\!*  
 
-📋 *Тариф:*  *__${this.telegramUtils.escapeMarkdown(Plans[subscription.planId])}__*
+📋 *Тариф:*  *__${Plans[subscription.planId]}__*
 
-📱 *Максимальное кол\\-во устройств:*  *_${this.telegramUtils.escapeMarkdown(MembersInPlan[subscription.deviceRangeId])}_*  
+📱 *Максимальное кол\\-во устройств:*  *_${MembersInPlan[subscription.deviceRangeId]}_*  
 
 💰 *Цена подписки в месяц:*  ~${defaultPrice}₽~ ➤ *_${pricePerMonth}₽_* 
 
 🧾 *Общая стоимость тарифа:* *_${subscription.price}_* ₽
 
-⏳ *Конец подписки:*  *_${this.telegramUtils.escapeMarkdown(
-            dayjs().add(subscription.months, 'month').format('DD.MM.YYYY'),
-        )}_*  
+⏳ *Конец подписки:*  *_${
+            dayjs().add(subscription.months, 'month').format('DD.MM.YYYY')
+        }_*  
 `
         const url = `${process.env.FRONTEND_DOMAIN}?chatId=${paymentAccountId}&invoiceId=${paymentInvoiceId}&amount=${subscription.price}&months=${ctx.session.selectedMonths}&messageId=${messageId}&paymentType=pay`
         const keyboard = {

@@ -5,50 +5,63 @@ import {
     AvailablePlansEnum,
     MyContext, Plans
 } from "../../interfaces/telegram.interface";
-import { LinkGeneratorService } from "../../services/link-generator.service";
-import { UserService } from "../../services/user.service";
-import { XuiApiService } from "../../services/xui-api.service";
 import { TelegramUtils } from "../../utils/telegram-utils";
+import { ThirdLevelService } from "../Third/third_service.service";
 
 @Injectable()
 export class FourthLevelService {
     constructor(
         private readonly telegramUtils: TelegramUtils,
-        private readonly userService: UserService,
-        private readonly xuiApiService: XuiApiService,
-        private readonly linkGeneratorService: LinkGeneratorService,
+        private readonly thirdLevelService: ThirdLevelService,
         private readonly prismaService: PrismaService,
     ) {
     }
 
-    async handlePaymentHistory( ctx: MyContext ) {
-        const history = await this.userService.getUserPaymentHistory(ctx);
+    getDayDeclension( days: number ): string {
+        const lastDigit = days % 10;
+        const lastTwoDigits = days % 100;
 
-        const text = `💳 *История платежей*
+        if ( lastTwoDigits >= 11 && lastTwoDigits <= 14 ) {
+            return 'дней';
+        }
 
-${history.length > 0 ? '*Ваши транзакции:*' : 'У вас пока нет платежей\\.'}
-${history
-            .map(
-                ( payment, index ) => `
-${index + 1}\\. ${payment.plan} — ${payment.amount}$ 💸
-   📅 01\\.${payment.month}\\.${payment.year} \\| ${payment.status === 'Оплачено' ? '✅' : '⚠️'} ${payment.status}`,
-            )
-            .join('\n')}
-
-_Всего: ${this.telegramUtils.escapeMarkdown(String(history.length))} транзакций_`;
-
-        const keyboard = {
-            inline_keyboard: [
-                [ {
-                    text: '📥 Выгрузить чеки',
-                    callback_data: 'download_receipts'
-                } ],
-                [ { text: '🔙 Назад в аккаунт', callback_data: 'my_account' } ],
-            ],
-        };
-
-        await this.telegramUtils.sendOrEditMessage(ctx, text, keyboard);
+        if ( lastDigit === 1 ) {
+            return 'день';
+        } else if ( lastDigit >= 2 && lastDigit <= 4 ) {
+            return 'дня';
+        } else {
+            return 'дней';
+        }
     }
+
+//     async handlePaymentHistory( ctx: MyContext ) {
+//         const history = await this.userService.getUserPaymentHistory(ctx);
+//
+//         const text = `💳 *История платежей*
+//
+// ${history.length > 0 ? '*Ваши транзакции:*' : 'У вас пока нет платежей\\.'}
+// ${history
+//             .map(
+//                 ( payment, index ) => `
+// ${index + 1}. ${payment.plan} — ${payment.amount}$ 💸
+//    📅 01.${payment.month}\\.${payment.year} | ${payment.status === 'Оплачено' ? '✅' : '⚠️'} ${payment.status}`,
+//             )
+//             .join('\n')}
+//
+// _Всего: ${String(history.length)} транзакций_`;
+//
+//         const keyboard = {
+//             inline_keyboard: [
+//                 [ {
+//                     text: '📥 Выгрузить чеки',
+//                     callback_data: 'download_receipts'
+//                 } ],
+//                 [ { text: '🔙 Назад в аккаунт', callback_data: 'my_account' } ],
+//             ],
+//         };
+//
+//         await this.telegramUtils.sendOrEditMessage(ctx, text, keyboard);
+//     }
 
     async handleChoosePlan( ctx: MyContext, planName: keyof typeof AvailablePlansEnum ) {
         ctx.session.selectedPlan = AvailablePlansEnum[planName];
@@ -106,7 +119,6 @@ _Всего: ${this.telegramUtils.escapeMarkdown(String(history.length))} тра
             },
         });
 
-
         if ( !subscription ) {
             const text = '❌ Подписка не найдена\\.';
             const keyboard = {
@@ -119,32 +131,44 @@ _Всего: ${this.telegramUtils.escapeMarkdown(String(history.length))} тра
             return;
         }
         const messageId = ctx.callbackQuery && ctx.callbackQuery.message && ctx.callbackQuery.message.message_id
+
         const isActive = dayjs().isBefore(dayjs(subscription.expiredDate));
-        const status = isActive ? '🟢 Активна' : '🔴 Истекла';
+        const expiredDate = dayjs(subscription.expiredDate).format('D MMMM YYYY [г.]')
+        const twoMonthsFromNow = dayjs().add(2, 'month');
+        const endDate = dayjs(subscription.expiredDate)
+        const differenceDays = endDate.diff(dayjs(), 'day')
+
+        const status = isActive ? 'Активна' : 'Истекла';
         const statusRenew = subscription.status === 'Active' ? '✅' : '❌'
         const planName = subscription.subscriptionPlan?.plan?.name
-        const deviceRange = this.telegramUtils.escapeMarkdown(subscription.subscriptionPlan?.deviceRange?.range || 'Неизвестно');
-        const expiredDate = this.telegramUtils.escapeMarkdown(dayjs(subscription.expiredDate).format('D MMMM YYYY [г.]'));
+        const deviceRange = subscription.subscriptionPlan?.deviceRange?.range || 'Неизвестно'
 
         const url = `${process.env.FRONTEND_DOMAIN}?chatId=${subscription.userId}&invoiceId=${subscription.lastInvoiceId}&amount=${subscription.subscriptionPlan.price}&months=${subscription.subscriptionPlan.months}&messageId=${messageId}&paymentType=extension`.trim()
 
+
         const text = `
-🆔 ID: \`${this.telegramUtils.escapeMarkdown(subscriptionId)}\`
-📋 Тариф: *${this.telegramUtils.escapeMarkdown(Plans[AvailablePlansEnum[planName.toLowerCase()]])}*
+🆔 ID: \`${subscriptionId}\`
+📋 Тариф: *${Plans[AvailablePlansEnum[planName.toLowerCase()]]}*
 📱 Устройств: *${deviceRange}*
 ⏳ Истекает: *${expiredDate}*
-${status}
+🗓️ Дней до конца подписки: *${differenceDays} ${this.getDayDeclension(differenceDays)}*
+
+🔒 VLESS ссылка для подключения: \`${subscription.vlessLinkConnection}\`
+
+🔗 URL ссылка для подключения: ${subscription.urlLinkConnection}
+
+${isActive ? '🟢' : '🔴'} Статус подписки: ${status}
 `;
 
         const keyboard = {
             inline_keyboard: [
-                [
+                [ ...(endDate.isBefore(twoMonthsFromNow) ? [
                     {
                         text: '🔄 Продлить подписку',
                         web_app: { url }
                     },
 
-                ],
+                ] : []) ],
                 [
                     {
                         text: `${statusRenew} Автопродление (вкл/выкл)`,
@@ -157,6 +181,10 @@ ${status}
                         callback_data: `sub_${subscriptionId}`
                     }
                 ],
+                [ ...(isActive ? [] : [ {
+                    text: '🗑️ Удалить из списка',
+                    callback_data: `delete_from_user_subscription-${subscriptionId}`,
+                } ]) ],
                 [
                     {
                         text: '🔙 В главное меню',
@@ -171,5 +199,14 @@ ${status}
         };
 
         await this.telegramUtils.sendOrEditMessage(ctx, text, keyboard);
+    }
+
+    async handleDeleteFromUserSubscription( ctx: MyContext, subId: string ) {
+        await this.prismaService.userSubscription.delete({
+            where: {
+                id: subId,
+            }
+        })
+        return await this.thirdLevelService.handleMySubscriptions(ctx)
     }
 }
