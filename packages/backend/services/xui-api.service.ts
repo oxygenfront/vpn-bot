@@ -12,6 +12,7 @@ interface IGetOrCreateClient {
     inboundId?: number,
     expiredDays: number,
     limit: number
+    limitIp: number
 }
 
 @Injectable()
@@ -44,6 +45,7 @@ export class XuiApiService {
                                  inboundId = 2,
                                  expiredDays,
                                  limit,
+                                 limitIp
                              }: IGetOrCreateClient ) {
 
         const inboundResponse = await firstValueFrom(
@@ -73,7 +75,7 @@ export class XuiApiService {
                 flow: '',
                 password: randomBytes(64).toString('base64'),
                 email: username,
-                limitIp: 1,
+                limitIp,
                 totalGB: gbLimit,
                 expiryTime: expiryTime,
                 subId: uuidv4(),

@@ -133,7 +133,8 @@ export class FourthLevelService {
         const messageId = ctx.callbackQuery && ctx.callbackQuery.message && ctx.callbackQuery.message.message_id
 
         const isActive = dayjs().isBefore(dayjs(subscription.expiredDate));
-        const expiredDate = dayjs(subscription.expiredDate).format('D MMMM YYYY [г.]')
+        const expiredDate = dayjs(subscription.expiredDate).format('D MMMM YYYY' +
+            ' [г.] hh:mm (мск)')
         const twoMonthsFromNow = dayjs().add(2, 'month');
         const endDate = dayjs(subscription.expiredDate)
         const differenceDays = endDate.diff(dayjs(), 'day')
@@ -151,6 +152,8 @@ export class FourthLevelService {
 📋 Тариф: *${Plans[AvailablePlansEnum[planName.toLowerCase()]]}*
 📱 Устройств: *${deviceRange}*
 ⏳ Истекает: *${expiredDate}*
+Дата списания: *${dayjs(subscription.nextBillingDate).format('D MMMM YYYY' +
+            ' [г.] hh:mm (мск)')}*
 🗓️ Дней до конца подписки: *${differenceDays} ${this.getDayDeclension(differenceDays)}*
 
 🔒 VLESS ссылка для подключения: \`${subscription.vlessLinkConnection}\`
@@ -158,11 +161,13 @@ export class FourthLevelService {
 🔗 URL ссылка для подключения: ${subscription.urlLinkConnection}
 
 ${isActive ? '🟢' : '🔴'} Статус подписки: ${status}
+
+*_Продление подписки доступно только если до конца текущей осталось менее двух месяцев, а также если отключено автопродление_*
 `;
 
         const keyboard = {
             inline_keyboard: [
-                [ ...(endDate.isBefore(twoMonthsFromNow) ? [
+                [ ...(endDate.isBefore(twoMonthsFromNow) && subscription.status !== 'Active' ? [
                     {
                         text: '🔄 Продлить подписку',
                         web_app: { url }
@@ -181,7 +186,7 @@ ${isActive ? '🟢' : '🔴'} Статус подписки: ${status}
                         callback_data: `sub_${subscriptionId}`
                     }
                 ],
-                [ ...(isActive ? [] : [ {
+                [ ...(isActive && subscription.status === 'Active' ? [] : [ {
                     text: '🗑️ Удалить из списка',
                     callback_data: `delete_from_user_subscription-${subscriptionId}`,
                 } ]) ],

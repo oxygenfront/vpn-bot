@@ -30,20 +30,24 @@ export class SecondLevelService {
             },
         })
         const subscriptions = user ? user.subscriptions?.map(( subscription ) => {
-            return `🟢 ${Plans[subscription.subscriptionPlan.planId]} до ${dayjs(subscription.expiredDate).format('DD.MM.YYYY  HH:mm:ss')}`
-        }).join(`\n━━━━━━━━━━━━━━━━━\n`) : 'У вас нет активных подписок'
+            return `🟢 ${Plans[subscription.subscriptionPlan.planId]} до ${dayjs(subscription.expiredDate).format('D MMMM YYYY' +
+                ' [г.] hh:mm (мск)')}`
+        }).filter(( el, i ) => i <= 4 ? el : null).join(`\n━━━━━━━━━━━━━━━━━━\n`) : 'У вас нет' +
+            ' активных' +
+            ' подписок'
 
-        const text = `👤 *Личный кабинет*
+        const text = ` *━━━━  👤 Личный кабинет  ━━━━*
         
-${subscriptions} 
+${subscriptions.length ? `⚡ *_Текущие активные подписки_*:\n\n${subscriptions}` : 'На данный момент у вас нет активных подписок, но вы всегда можете ее приобрести *_нажав на кнопку ниже_*'}
        
-*Статистика:*
+*━━━━━━  Статистика  ━━━━━━*
+
 • 📊 Дней с нами: ${user?.createdAt
             ? Math.floor(dayjs().diff(dayjs(user.createdAt), 'day'))
             : 0}
 • ✅ Активных подписок: ${user?.subscriptions.length}
 
-*Нужна помощь?* Обратитесь в поддержку 24/7`;
+*Нужна помощь?* \nОбратитесь в *_поддержку 24/7_*`;
 
         const keyboard = {
             inline_keyboard: [
@@ -52,7 +56,10 @@ ${subscriptions}
                     ...(subscriptions.length ? [ {
                         text: '📋 Мои подписки',
                         callback_data: 'my_subscriptions'
-                    } ] : []),
+                    } ] : [ {
+                        text: '🪙 Купить VPN',
+                        callback_data: 'buy_vpn'
+                    } ]),
 
                 ],
                 ...(subscriptions.length ?

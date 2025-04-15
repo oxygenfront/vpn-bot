@@ -9,10 +9,10 @@
   "scripts": {
     "start:backend": "yarn workspace backend start:dev",
     "start:frontend": "yarn workspace frontend start",
-    "start": "yarn start:backend & yarn start:frontend",
     "build:backend": "yarn workspace backend build",
     "build:frontend": "yarn workspace frontend build",
-    "build": "yarn build:backend && yarn build:frontend"
+    "build": "yarn build:backend && yarn build:frontend",
+    "start": "yarn build && yarn start:backend & yarn start:frontend"
   },
   "volta": {
     "node": "22.11.0",

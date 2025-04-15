@@ -57,12 +57,12 @@ export class FirstLevelService {
                             }
                         ] : [])
                 ],
-                // [
-                //     {
-                //         text: 'Очистить все подписки',
-                //         callback_data: 'clear_all'
-                //     }
-                // ],
+                [
+                    {
+                        text: 'Очистить все подписки',
+                        callback_data: 'clear_all'
+                    }
+                ],
                 [
 
                     {
@@ -90,7 +90,7 @@ export class FirstLevelService {
     //     const url = `${this.apiUrl}/subscriptions/find`
     //     const accountId = ctx.callbackQuery && ctx.callbackQuery.from.id
     //     const data = {
-    //         accountId
+    //         accountId: "74e4502dddd445fcac35a68211054b1d"
     //     }
     //
     //     const response = await firstValueFrom(
@@ -100,18 +100,17 @@ export class FirstLevelService {
     //     );
     //
     //     const subscriptions: any[] = response.data.Model.filter(sub => sub.Status === 'Active')
-    //     console.log(subscriptions.length);
-    //     // for ( const sub of subscriptions ) {
-    //     //     const url = `${this.apiUrl}/subscriptions/cancel`
-    //     //     const data = {
-    //     //         Id: sub.Id
-    //     //     }
-    //     //     await firstValueFrom(
-    //     //         this.httpService.post(url, data, {
-    //     //             auth: { username: this.publicId, password: this.apiSecret },
-    //     //         }),
-    //     //     )
-    //     // }
+    //     for ( const sub of subscriptions ) {
+    //         const url = `${this.apiUrl}/subscriptions/cancel`
+    //         const data = {
+    //             Id: sub.Id
+    //         }
+    //         await firstValueFrom(
+    //             this.httpService.post(url, data, {
+    //                 auth: { username: this.publicId, password: this.apiSecret },
+    //             }),
+    //         )
+    //     }
     //
     // }
 }

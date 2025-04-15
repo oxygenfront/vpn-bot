@@ -3,7 +3,11 @@ import { Body, Controller, Post } from '@nestjs/common';
 import { PrismaService } from "nestjs-prisma";
 import { InjectBot } from "nestjs-telegraf";
 import { Telegraf } from 'telegraf';
-import { Plans, PlanTrafficLimits } from "../interfaces/telegram.interface";
+import {
+    MembersInPlan,
+    PlanTrafficLimits
+} from "../interfaces/telegram.interface";
+import { ConfigService } from '@nestjs/config';
 import { CloudPaymentsService } from "../services/cloudpayments.service";
 import { LinkGeneratorService } from "../services/link-generator.service";
 import { XuiApiService } from "../services/xui-api.service";
@@ -13,15 +17,18 @@ import * as dayjs from "dayjs";
 
 @Controller('webhook')
 export class WebhookController {
+    private readonly apiUrl: string
 
     constructor(
         private readonly cloudPaymentsService: CloudPaymentsService,
         private readonly linkGeneratorService: LinkGeneratorService,
+        private readonly configService: ConfigService,
         private readonly xuiApiService: XuiApiService,
         private readonly telegramUtils: TelegramUtils,
         private readonly prismaService: PrismaService,
         @InjectBot() private readonly bot: Telegraf
     ) {
+        this.apiUrl = this.configService.get<string>("CLOUDPAYMENTS_API_URL") as string
     }
 
 
@@ -63,9 +70,11 @@ export class WebhookController {
                                 months: CloudPayments.recurrent.period
                             },
                             include: {
-                                plan: true
+                                plan: true,
+                                deviceRange: true
                             }
                         })
+
 
                         if ( boughtPlan ) {
                             const {
@@ -77,6 +86,7 @@ export class WebhookController {
                                 tgId,
                                 expiredDays: 30 * period,
                                 limit: PlanTrafficLimits[boughtPlan.plan.name] as unknown as number,
+                                limitIp: Number(boughtPlan.deviceRange.range.split('-')[2])
                             });
 
                             const user = await this.prismaService.user.upsert({
@@ -92,15 +102,7 @@ export class WebhookController {
                                     updatedAt: new Date(),
                                 },
                             });
-
-
-                            const subscriptionData = await this.cloudPaymentsService.createSubscription(
-                                Token,
-                                Amount,
-                                AccountId,
-                                'Month',
-                                period,
-                            );
+                            const { data } = await this.cloudPaymentsService.responseFunction(`${this.apiUrl}/subscriptions/get`, { Id: SubscriptionId })
                             const response = await this.prismaService.userSubscription.findFirst({
                                 where: {
                                     id: SubscriptionId
@@ -121,7 +123,7 @@ export class WebhookController {
                                     id: SubscriptionId
                                 },
                                 update: {
-                                    nextBillingDate: new Date(subscriptionData.NextTransactionDateIso),
+                                    nextBillingDate: dayjs(data.Model.NextTransactionDateIso).add(3, 'hour').toDate(),
                                     expiredDate: expiredDate,
                                     lastInvoiceId: InvoiceId,
                                 },
@@ -133,15 +135,15 @@ export class WebhookController {
                                     subscriptionPlanId: boughtPlan.id,
                                     vlessLinkConnection: vlessLink,
                                     urlLinkConnection: urlLink,
-                                    nextBillingDate: new Date(subscriptionData.NextTransactionDateIso),
+                                    nextBillingDate: dayjs(data.Model.NextTransactionDateIso).add(3, 'hour').toDate(),
                                     startBillingDate: new Date(),
+                                    createdAt: new Date(),
                                     expiredDate: dayjs().add(boughtPlan.months, 'month').toDate(),
                                 },
                             });
 
 
-                            if ( CloudPayments?.type === 'pay' ) {
-                                const messageText = `
+                            const messageText = `
 *Оплата успешно завершена!*  
 💰 Сумма: *${Amount} RUB*  
 📋 Заказ: *${InvoiceId}*  
@@ -155,51 +157,49 @@ ${urlLink}
 🔒 *VLESS подключение:*  
 \`${vlessLink}\` 
 `
-                                const replyMarkup = {
-                                    inline_keyboard: [ [
-                                        {
-                                            text: 'Что дальше ?',
-                                            url: 'https://telegra.ph/CHto-delat-posle-oplaty-03-31'
-                                        },
-                                        {
-                                            text: '👤 Мой аккаунт',
-                                            callback_data: 'my_account'
-                                        }
-                                    ], [
-                                        {
-                                            text: '🔙 Назад',
-                                            callback_data: 'buy_vpn'
-                                        }
-                                    ] ]
-                                }
-                                if ( messageId ) {
-                                    try {
-                                        await this.bot.telegram.editMessageText(
-                                            chatId, messageId, undefined, messageText
-                                            , {
-                                                reply_markup: replyMarkup,
-                                                parse_mode: 'MarkdownV2',
-                                            },
-                                        );
-
-                                    } catch ( editError ) {
-                                        try {
-                                            await this.bot.telegram.deleteMessage(chatId, messageId);
-                                        } finally {
-                                            await this.bot.telegram.sendMessage(chatId, messageText, {
-                                                parse_mode: 'MarkdownV2',
-                                                reply_markup: replyMarkup,
-                                            })
-                                        }
+                            const replyMarkup = {
+                                inline_keyboard: [ [
+                                    {
+                                        text: 'Что дальше ?',
+                                        url: 'https://telegra.ph/CHto-delat-posle-oplaty-03-31'
+                                    },
+                                    {
+                                        text: '👤 Мой аккаунт',
+                                        callback_data: 'my_account'
                                     }
-                                } else {
-                                    await this.bot.telegram.sendMessage(chatId, messageText, {
-                                        parse_mode: 'MarkdownV2',
-                                        reply_markup: replyMarkup,
-                                    });
-                                }
+                                ], [
+                                    {
+                                        text: '🔙 Назад',
+                                        callback_data: 'buy_vpn'
+                                    }
+                                ] ]
                             }
+                            if ( messageId ) {
+                                try {
+                                    await this.bot.telegram.editMessageText(
+                                        chatId, messageId, undefined, this.telegramUtils.escapeMarkdown(messageText)
+                                        , {
+                                            reply_markup: replyMarkup,
+                                            parse_mode: 'MarkdownV2',
+                                        },
+                                    );
 
+                                } catch ( editError ) {
+                                    try {
+                                        await this.bot.telegram.deleteMessage(chatId, messageId);
+                                    } finally {
+                                        await this.bot.telegram.sendMessage(chatId, this.telegramUtils.escapeMarkdown(messageText), {
+                                            parse_mode: 'MarkdownV2',
+                                            reply_markup: replyMarkup,
+                                        })
+                                    }
+                                }
+                            } else {
+                                await this.bot.telegram.sendMessage(chatId, this.telegramUtils.escapeMarkdown(messageText), {
+                                    parse_mode: 'MarkdownV2',
+                                    reply_markup: replyMarkup,
+                                });
+                            }
 
                         }
                     } catch ( error ) {

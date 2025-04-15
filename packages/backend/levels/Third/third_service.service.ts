@@ -97,6 +97,9 @@ _Не нашли ответ? Задайте вопрос поддержке!_`;
                     telegramId
                 },
             },
+            orderBy: {
+                createdAt: 'desc'
+            },
             skip: skip > 0 ? skip : 0,
             take,
             include: {
@@ -136,6 +139,16 @@ _Не нашли ответ? Задайте вопрос поддержке!_`;
             return this.handleMySubscriptions(ctx);
         }
 
+        function formatMonths( months: number ) {
+            if ( months === 1 ) {
+                return `${months} месяц`
+            } else if ( months > 1 && months <= 4 ) {
+                return `${months} месяца`
+            } else {
+                return `${months} месяцев`
+            }
+        }
+
         let text = `
 📋 *Ваши подписки*
 Вот список ваших активных подписок. Вы можете управлять каждой из них, нажав на соответствующую кнопку.
@@ -146,8 +159,8 @@ _Не нашли ответ? Задайте вопрос поддержке!_`;
             const status = isActive ? '🟢 Активна' : '🔴 Истекла';
             const planName = sub.subscriptionPlan?.plan?.name || 'Неизвестный тариф';
             const deviceRange = sub.subscriptionPlan?.deviceRange?.range || 'Неизвестно';
-            const expiredDate = dayjs(sub.expiredDate).format('D MMMM YYYY [г.]');
-            const pricePerMonth = Math.floor(sub.subscriptionPlan.price / sub.subscriptionPlan.months)
+            const expiredDate = dayjs(sub.expiredDate).format('D MMMM YYYY' +
+                ' [г.] hh:mm (мск)');
 
             text += `
 *Подписка №${skip + index + 1}*
@@ -155,7 +168,9 @@ _Не нашли ответ? Задайте вопрос поддержке!_`;
 📋 Тариф: *${Plans[AvailablePlansEnum[planName.toLowerCase()]]}*
 📱 Устройств: *${deviceRange}*
 ⏳ Истекает: *${expiredDate}*
-💰 Цена за месяц: *${pricePerMonth}₽*
+🔄 След. списание: *${dayjs(sub.nextBillingDate).format('D MMMM YYYY [г.]' +
+                ' hh:mm (мск)')}*
+💰 Цена за ${formatMonths(sub.subscriptionPlan.months)}  : *${sub.subscriptionPlan.price}₽*
 ${status}
 `;
         });

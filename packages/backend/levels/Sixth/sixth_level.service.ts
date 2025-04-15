@@ -82,7 +82,8 @@ export class SixthLevelService {
 🧾 *Общая стоимость тарифа:* *_${subscription.price}_* ₽
 
 ⏳ *Конец подписки:*  *_${
-            dayjs().add(subscription.months, 'month').format('DD.MM.YYYY')
+            dayjs().add(subscription.months, 'month').format('D MMMM YYYY' +
+                ' [г.] hh:mm (мск)')
         }_*  
 `
         const url = `${process.env.FRONTEND_DOMAIN}?chatId=${paymentAccountId}&invoiceId=${paymentInvoiceId}&amount=${subscription.price}&months=${ctx.session.selectedMonths}&messageId=${messageId}&paymentType=pay`

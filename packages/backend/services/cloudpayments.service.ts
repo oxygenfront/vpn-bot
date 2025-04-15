@@ -11,7 +11,7 @@ import * as dayjs from 'dayjs';
 
 @Injectable()
 export class CloudPaymentsService {
-    private readonly apiUrl = 'https://api.cloudpayments.ru';
+    private readonly apiUrl: string;
     private readonly publicId: string;
     private readonly apiSecret: string;
 
@@ -24,10 +24,10 @@ export class CloudPaymentsService {
     ) {
         this.publicId = this.configService.get<string>('CLOUDPAYMENTS_PUBLIC_ID') as string;
         this.apiSecret = this.configService.get<string>('CLOUDPAYMENTS_API_SECRET') as string;
-
+        this.apiUrl = this.configService.get<string>('CLOUDPAYMENTS_API_URL') as string;
     }
 
-    private async responseFunction( url, data ) {
+    async responseFunction( url, data ) {
         return await firstValueFrom(
             this.httpService.post(url, data, {
                 auth: { username: this.publicId, password: this.apiSecret },
@@ -35,35 +35,35 @@ export class CloudPaymentsService {
         )
     }
 
-    async createSubscription(
-        token: string,
-        amount: number,
-        accountId: string,
-        interval: string,
-        period: number,
-    ) {
-
-        const StartDate = dayjs().add(period, 'month')
-        const url = `${this.apiUrl}/subscriptions/create`;
-        const data = {
-            Token: token,
-            AccountId: accountId,
-            Description: 'Подписка на услугу',
-            Amount: amount,
-            Currency: 'RUB',
-            Interval: interval,
-            Period: period,
-            StartDate,
-        }
-
-        const response = await this.responseFunction(url, data);
-
-        if ( response.data.Success ) {
-            return response.data.Model;
-        } else {
-            throw new Error(response.data.Message || 'Ошибка при создании подписки');
-        }
-    }
+    // async createSubscription(
+    //     token: string,
+    //     amount: number,
+    //     accountId: string,
+    //     interval: string,
+    //     period: number,
+    // ) {
+    //
+    //     const StartDate = dayjs().add(period, 'month')
+    //     const url = `${this.apiUrl}/subscriptions/create`;
+    //     const data = {
+    //         Token: token,
+    //         AccountId: accountId,
+    //         Description: 'Подписка на услугу',
+    //         Amount: amount,
+    //         Currency: 'RUB',
+    //         Interval: interval,
+    //         Period: period,
+    //         StartDate,
+    //     }
+    //
+    //     const response = await this.responseFunction(url, data);
+    //
+    //     if ( response.data.Success ) {
+    //         return response.data.Model;
+    //     } else {
+    //         throw new Error(response.data.Message || 'Ошибка при создании подписки');
+    //     }
+    // }
 
     async updateSubscription( ctx: MyContext, subId: string, action: string ) {
         const url = action === 'Cancellation' ? `${this.apiUrl}/subscriptions/cancel` : `${this.apiUrl}/subscriptions/update`;

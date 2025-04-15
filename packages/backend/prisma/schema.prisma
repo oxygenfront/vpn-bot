@@ -58,6 +58,7 @@ model UserSubscription {
   nextBillingDate     DateTime
   expiredDate         DateTime
   lastInvoiceId       String
+  createdAt           DateTime
   status              Status
   vlessLinkConnection String
   urlLinkConnection   String
