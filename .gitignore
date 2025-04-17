@@ -1,19 +1,12 @@
 *
-!dist
-!prisma
-!.env.example
-!package.json
-!tsconfig.build.json
-!tsconfig.json
-!index.html
-!tsconfig.node.json
-!tsconfig.node.tsbuildinfo
-!tsconfig.tsbuildinfo
-!vite.config.ts
-!vite.config.d.ts
-!vite.config.js
 
-node_modules
+!packages/**/dist/
+!packages/**/dist/**/*
+!packages/**/package.json
+!packages/**/package-lock.json
+!.gitignore
+!.github/
+!.github/**/*
 
 # Logs
 logs
