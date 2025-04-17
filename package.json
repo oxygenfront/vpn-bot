@@ -11,7 +11,7 @@
     "start:frontend": "yarn workspace frontend start",
     "build:backend": "yarn workspace backend build",
     "build:frontend": "yarn workspace frontend build",
-    "build": "yarn build:backend && yarn build:frontend",
+    "build": "yarn build:backend && yarn build:frontend && git add . && git commit",
     "start": "yarn build && yarn start:backend & yarn start:frontend"
   },
   "volta": {
