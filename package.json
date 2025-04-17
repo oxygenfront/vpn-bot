@@ -2,17 +2,20 @@
   "name": "vpn-bot",
   "version": "1.0.0",
   "private": true,
-  "packageManager": "yarn@latest",
+  "packageManager": "yarn@4.9.1",
   "workspaces": [
     "packages/*"
   ],
   "scripts": {
-    "start:backend": "yarn workspace backend start:dev",
-    "start:frontend": "yarn workspace frontend start",
+    "start:backend:dev": "NODE_ENV=development yarn workspace backend start:dev",
+    "start:backend:prod": "NODE_ENV=production yarn workspace backend start",
+    "start:frontend:dev": "yarn workspace frontend start",
+    "start:frontend:prod": "yarn workspace frontend build && yarn workspace frontend preview",
     "build:backend": "yarn workspace backend build",
     "build:frontend": "yarn workspace frontend build",
     "build": "yarn build:backend && yarn build:frontend && git add . && git commit",
-    "start": "yarn build && yarn start:backend & yarn start:frontend"
+    "start:prod": "yarn build && yarn start:backend:prod & yarn start:frontend:prod",
+    "start:dev": "yarn start:frontend:dev & yarn start:backend:dev"
   },
   "volta": {
     "node": "22.11.0",

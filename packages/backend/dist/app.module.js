@@ -18,7 +18,8 @@ exports.AppModule = AppModule = __decorate([
     (0, common_1.Module)({
         imports: [
             config_1.ConfigModule.forRoot({
-                isGlobal: true
+                isGlobal: true,
+                envFilePath: `.env.${process.env.NODE_ENV || 'development'}`,
             }),
             nestjs_prisma_1.PrismaModule.forRoot({
                 isGlobal: true,
