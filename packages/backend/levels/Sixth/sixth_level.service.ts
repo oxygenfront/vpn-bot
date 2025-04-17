@@ -268,6 +268,7 @@ export class SixthLevelService {
                         text: '🔙 Назад',
                         callback_data: `month_${ctx.session.selectedMonths}`,
                     },
+                    { text: '🔙 В главное меню', callback_data: 'start' }
                 ],
             ],
         }

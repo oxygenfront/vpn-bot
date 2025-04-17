@@ -182,6 +182,7 @@ export class FifthLevelService {
                         text: '🔙 Назад',
                         callback_data: `plan_${AvailablePlansEnum[ctx.session.selectedPlan as number]}`
                     },
+                    { text: '🔙 В главное меню', callback_data: 'start' }
                 ],
             ],
         }

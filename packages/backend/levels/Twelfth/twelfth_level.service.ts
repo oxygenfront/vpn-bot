@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
+import * as dayjs from "dayjs";
 import { PrismaService } from "nestjs-prisma";
-import { MyContext } from "../../interfaces/telegram.interface";
+import { MyContext, PromocodeTypes } from "../../interfaces/telegram.interface";
 import { TelegramUtils } from "../../utils/telegram-utils";
 
 @Injectable()
@@ -32,7 +33,18 @@ export class TwelfthLevelService {
             maxUsesPerUser &&
             minMonthsOrderAmount ) {
 
-            const text = 'Промокод создан успешно ✅.'
+            const text = `🎉 Промокод \`${ctx.session.promocode}\` успешно создан ✅
+
+📋 *_Детали промокода:_*
+
+• 🎟️ Промокод: \`${ctx.session.promocode}\`
+• ⚙️ Тип промокода: \`${PromocodeTypes[ctx.session.promocodeType as 'fixed' | 'percent']}\`
+• 💸 Скидка: \`${ctx.session.promocodeValue} ${ctx.session.promocodeType === 'percent' ? '%' : '₽'}\`
+• 💸 Мин. сумма для активации: \`${ctx.session.promocodeMinOrderAmount} ₽\`
+• 📅 Мин. кол-во месяцев для активации: \`${ctx.session.promocodeMinMonthsOrderAmount}\`
+• 📅 Действителен до: \`${dayjs(ctx.session.promocodeExpiredDate).format('D MMMM YYYY [г.] HH:MM')}\`
+• 🔢 Всего использований: \`${ctx.session.promocodeAvailableCountUses}\`
+• 👤 На одного пользователя: \`${ctx.session.promocodeMaxUsesPerUser}\`.`
             const keyboard = {
                 inline_keyboard: [
                     [

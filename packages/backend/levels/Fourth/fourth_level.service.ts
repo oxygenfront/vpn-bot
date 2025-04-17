@@ -68,7 +68,10 @@ export class FourthLevelService {
                         callback_data: 'month_12'
                     },
                 ],
-                [ { text: '🔙 Назад', callback_data: 'buy_vpn' } ], // 🔙 — оставляем как есть
+                [ {
+                    text: '🔙 Назад',
+                    callback_data: 'buy_vpn'
+                }, { text: '🔙 В главное меню', callback_data: 'start' } ], // 🔙 —
             ]
         }
 
