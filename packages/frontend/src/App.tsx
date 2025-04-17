@@ -7,6 +7,9 @@ export const App = () => {
     const [ months, setMonths ] = useState<number>(0)
     const [ messageId, setMessageId ] = useState<number>(0)
     const [ paymentType, setPaymentType ] = useState<string>()
+    const [ planId, setPlanId ] = useState<number>()
+    const [ promocode, setPromocode ] = useState<string>('')
+
     const PUBLIC_KEY = import.meta.env.VITE_CLOUDPAYMENTS_PUBLIC_KEY
     useEffect(() => {
         if ( !window.Telegram?.WebApp ) {
@@ -27,11 +30,16 @@ export const App = () => {
         const urlMonths = Number(urlParams.get('months'))
         const messageId = Number(urlParams.get('messageId'))
         const paymentType = String(urlParams.get('paymentType'))
+        const planId = Number(urlParams.get('planId'))
+        const promocode = String(urlParams.get('promocode'))
+
         if ( !(urlChatId && urlInvoiceId) || urlAmount <= 0 ) {
             console.error('Некорректные параметры подписки')
             return
         }
 
+        setPromocode(promocode)
+        setPlanId(planId)
         setPaymentType(paymentType)
         setMessageId(messageId)
         setMonths(urlMonths)
@@ -43,10 +51,10 @@ export const App = () => {
     }, [])
 
     useEffect(() => {
-        if ( amount > 0 && chatId && invoiceId && paymentType ) {
+        if ( amount > 0 && chatId && invoiceId && paymentType && planId ) {
             handlePayment()
         }
-    }, [ amount, chatId, invoiceId, paymentType ])
+    }, [ amount, chatId, invoiceId, paymentType, planId, promocode ])
 
     const handlePayment = () => {
         if ( !window.cp?.CloudPayments ) {
@@ -83,6 +91,8 @@ export const App = () => {
                 CustomerReceipt: receipt,
                 messageId: messageId,
                 type: paymentType,
+                planId,
+                promocode,
                 recurrent: {
                     interval: 'Month',
                     period: months,

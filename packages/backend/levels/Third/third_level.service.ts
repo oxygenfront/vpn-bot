@@ -3,7 +3,7 @@ import { PrismaService } from "nestjs-prisma";
 import {
     AvailablePlansEnum,
     MyContext,
-    Plans
+    Plans, PromocodeTypes, StepsEnum
 } from "../../interfaces/telegram.interface";
 import { TelegramUtils } from "../../utils/telegram-utils";
 import * as dayjs from "dayjs";
@@ -228,5 +228,39 @@ ${status}
         ]);
 
         await this.telegramUtils.sendOrEditMessage(ctx, text, keyboard);
+    }
+
+    async handleAddPromocode( ctx: MyContext ) {
+        ctx.session = {
+            ...ctx.session,
+            promocode: null,
+            promocodeMessageId: null,
+            promocodeType: null,
+            promocodeExpiredDate: null,
+            promocodeExpiredMonths: null,
+            promocodeAvailableCountUses: null,
+            promocodeMaxUsesPerUser: null,
+            promocodeValue: null,
+            promocodeMinOrderAmount: null,
+            promocodeMinMonthsOrderAmount: null
+        }
+        ctx.session.step = StepsEnum.PROMOCODE
+
+        const text = 'Введите название промокода: '
+        const keyboard = {
+            inline_keyboard: [ [ {
+                text: '🔙 Назад',
+                callback_data: 'start'
+            } ] ],
+        }
+
+        const message = await this.telegramUtils.sendOrEditMessage(ctx, text, keyboard);
+        if ( typeof message !== 'boolean' ) {
+            ctx.session.promocodeMessageId = message.message_id
+        }
+    }
+
+    async handleShowPromocodes( ctx: MyContext ) {
+
     }
 }

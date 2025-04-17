@@ -88,13 +88,13 @@ ${subscriptions.length ? `⚡ *_Текущие активные подписки
     }
 
     async handleBuyToken( ctx: MyContext ) {
-        ctx.session.selectedPlan = undefined;
+        ctx.session.selectedPlan = null;
         const minPrices = await this.prismaService.subscriptionPlan.findMany({
             where: { deviceRangeId: 1, months: 1 },
         })
         const text = `💫 *Выберите оптимальный план:*
         
-🥇 *Премиум - от ${minPrices[0].price}₽/месяц*
+🥇 *Премиум - от ${minPrices[2].price}₽/месяц*
 • Безлимитный трафик
 • 1-7 устройств
 • VIP поддержка
@@ -105,7 +105,7 @@ ${subscriptions.length ? `⚡ *_Текущие активные подписки
 • 1-7 устройств
 • *_Экономия 40%_*
 
-🥉 *Базовый - от ${minPrices[2].price}₽/месяц*
+🥉 *Базовый - от ${minPrices[0].price}₽/месяц*
 • 100GB трафика
 • 1-7 устройств`;
 
@@ -123,71 +123,5 @@ ${subscriptions.length ? `⚡ *_Текущие активные подписки
         await this.telegramUtils.sendOrEditMessage(ctx, text, keyboard);
     }
 
-    async handleHelp( ctx: MyContext ) {
-        const text = `👨‍💻 *Служба поддержки*
 
-*Мы всегда готовы помочь!*
-
-• 🕐 Время ответа: до 30 минут
-• 📅 Работаем: 24/7
-• 🌍 Поддержка на русском и английском
-
-*Выберите тему обращения:*
-• 🔧 Технические вопросы
-• 💳 Вопросы оплаты
-• 🎁 Акции и промокоды
-• 💬 Другое
-
-_Опишите проблему, и мы поможем максимально быстро!_`;
-
-        const keyboard = {
-            inline_keyboard: [
-                [
-                    { text: '🔧 Техподдержка', callback_data: 'tech_support' },
-                    {
-                        text: '💳 Вопросы оплаты',
-                        callback_data: 'payment_support'
-                    },
-                ],
-                [ {
-                    text: '📝 Написать сообщение',
-                    callback_data: 'write_message'
-                } ],
-                [
-                    { text: '❓ FAQ', callback_data: 'faq' },
-                    { text: '🔙 Назад', callback_data: 'start' },
-                ],
-            ],
-        };
-
-        await this.telegramUtils.sendOrEditMessage(ctx, text, keyboard);
-    }
-
-    async handleSettings( ctx: MyContext ) {
-        const text = `⚙️ *Настройки*
-
-*Персонализируйте работу бота:*
-
-• 📱 Управление устройствами
-• 🔐 Безопасность
-• 📋 Формат инструкций
-
-_Выберите раздел для настройки:_`;
-
-        const keyboard = {
-            inline_keyboard: [
-                [
-                    { text: '📱 Устройства', callback_data: 'devices' },
-                    { text: '🔐 Безопасность', callback_data: 'security' },
-                ],
-                [ {
-                    text: '📋 Формат инструкций',
-                    callback_data: 'guide_format'
-                } ],
-                [ { text: '🔙 В главное меню', callback_data: 'start' } ],
-            ],
-        };
-
-        await this.telegramUtils.sendOrEditMessage(ctx, text, keyboard);
-    }
 }

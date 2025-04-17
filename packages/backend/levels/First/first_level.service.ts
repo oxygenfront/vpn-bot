@@ -8,7 +8,7 @@ import { TelegramUtils } from "../../utils/telegram-utils";
 
 @Injectable()
 export class FirstLevelService {
-    private readonly apiUrl = 'https://api.cloudpayments.ru';
+    private readonly apiUrl: string;
     private readonly publicId: string;
     private readonly apiSecret: string;
 
@@ -24,6 +24,27 @@ export class FirstLevelService {
 
     async handleStart( ctx: MyContext ) {
         const accountId = ('message' in ctx.update && ctx.update.message.from.id) || ('callback_query' in ctx.update && ctx.update.callback_query.from.id)
+        ctx.session = {
+            ...ctx.session,
+            promocode: null,
+            promocodeMessageId: null,
+            promocodeType: null,
+            promocodeExpiredDate: null,
+            promocodeExpiredMonths: null,
+            promocodeAvailableCountUses: null,
+            promocodeMaxUsesPerUser: null,
+            promocodeValue: null,
+            promocodeMinOrderAmount: null,
+            promocodeMinMonthsOrderAmount: null,
+
+            step: null,
+            selectedPayment: null,
+            paymentAmount: null,
+            selectedPlan: null,
+            deviceRangeId: null,
+            selectedMonths: null,
+            autoRenew: false,
+        }
         ctx.session.autoRenew = true
         const user = await this.prismaService.user.findUnique({
             where: {
@@ -42,6 +63,61 @@ export class FirstLevelService {
 • 👨‍💻 Техподдержка 24/7
 
 *Готовы начать?* Выберите действие ниже!`;
+        const adminKeyboard = {
+            inline_keyboard: [
+                [
+                    {
+                        text: '🪙 Купить VPN',
+                        callback_data: 'buy_vpn'
+                    },
+                    {
+                        text: '👤 Мой аккаунт',
+                        callback_data: 'my_account',
+                    }
+
+                ],
+                ...(accountId === 695606474 ? [
+                    [
+                        {
+                            text: '🗑️ Очистить все подписки',
+                            callback_data: 'clear_all'
+                        }
+
+                    ],
+                    [
+                        {
+                            text: '🎟️ Создать промокод',
+                            callback_data: 'handle_add_promocode',
+                        }
+
+                    ],
+                    [
+                        {
+                            text: '🎟️ Все промокоды',
+                            callback_data: 'handle_show_promocodes',
+                        }
+                    ]
+                ] : []),
+                [
+
+                    {
+                        text: '❓ FAQ',
+                        callback_data: 'faq'
+                    },
+                    {
+                        text: '📃 Оферта',
+                        url: 'https://telegra.ph/DOGOVOR-NA-OKAZANIE-USLUG-PUBLICHNAYA-OFERTA-03-24'
+                    },
+                ],
+                [
+                    {
+                        text: '👨‍💻 Поддержка',
+                        url: 'https://t.me/vpn_by_oxy/8'
+                    }
+                ]
+
+            ]
+        }
         const keyboard = {
             inline_keyboard: [
                 [
@@ -56,12 +132,6 @@ export class FirstLevelService {
                                 callback_data: 'my_account',
                             }
                         ] : [])
-                ],
-                [
-                    {
-                        text: 'Очистить все подписки',
-                        callback_data: 'clear_all'
-                    }
                 ],
                 [
 
@@ -83,7 +153,7 @@ export class FirstLevelService {
             ],
         };
 
-        await this.telegramUtils.sendOrEditMessage(ctx, text, keyboard);
+        await this.telegramUtils.sendOrEditMessage(ctx, text, accountId === 695606474 ? adminKeyboard : keyboard);
     }
 
     // async handleClearAll( ctx: MyContext ) {

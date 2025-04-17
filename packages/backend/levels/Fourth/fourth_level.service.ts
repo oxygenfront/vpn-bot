@@ -6,7 +6,7 @@ import {
     MyContext, Plans
 } from "../../interfaces/telegram.interface";
 import { TelegramUtils } from "../../utils/telegram-utils";
-import { ThirdLevelService } from "../Third/third_service.service";
+import { ThirdLevelService } from "../Third/third_level.service";
 
 @Injectable()
 export class FourthLevelService {
@@ -33,35 +33,6 @@ export class FourthLevelService {
             return 'дней';
         }
     }
-
-//     async handlePaymentHistory( ctx: MyContext ) {
-//         const history = await this.userService.getUserPaymentHistory(ctx);
-//
-//         const text = `💳 *История платежей*
-//
-// ${history.length > 0 ? '*Ваши транзакции:*' : 'У вас пока нет платежей.'}
-// ${history
-//             .map(
-//                 ( payment, index ) => `
-// ${index + 1}. ${payment.plan} — ${payment.amount}$ 💸
-//    📅 01.${payment.month}.${payment.year} | ${payment.status === 'Оплачено' ? '✅' : '⚠️'} ${payment.status}`,
-//             )
-//             .join('\n')}
-//
-// _Всего: ${String(history.length)} транзакций_`;
-//
-//         const keyboard = {
-//             inline_keyboard: [
-//                 [ {
-//                     text: '📥 Выгрузить чеки',
-//                     callback_data: 'download_receipts'
-//                 } ],
-//                 [ { text: '🔙 Назад в аккаунт', callback_data: 'my_account' } ],
-//             ],
-//         };
-//
-//         await this.telegramUtils.sendOrEditMessage(ctx, text, keyboard);
-//     }
 
     async handleChoosePlan( ctx: MyContext, planName: keyof typeof AvailablePlansEnum ) {
         ctx.session.selectedPlan = AvailablePlansEnum[planName];
@@ -213,5 +184,94 @@ ${isActive ? '🟢' : '🔴'} Статус подписки: ${status}
             }
         })
         return await this.thirdLevelService.handleMySubscriptions(ctx)
+    }
+
+    async handleChooseTypePromocode( ctx: MyContext ) {
+        if ( 'message' in ctx.update && 'text' in ctx.update.message && ctx.session.promocodeMessageId ) {
+            const promocode = await this.prismaService.promocode.findFirst({
+                where: {
+                    promocode: ctx.update.message.text
+                }
+            })
+            if ( !promocode ) {
+                ctx.session.promocode = ctx.update.message.text;
+            } else {
+                const text = `Промокод \`${ctx.update.message.text}\` уже существует. Выберите другое имя промокоду`
+                return await ctx.telegram.editMessageText(
+                    ctx.update.message.from.id,
+                    ctx.session.promocodeMessageId,
+                    undefined,
+                    this.telegramUtils.escapeMarkdown(text),
+                    {
+                        reply_markup: {
+                            inline_keyboard: [ [
+                                {
+                                    text: '🔙 Назад',
+                                    callback_data: 'start'
+                                }
+                            ] ]
+                        }, parse_mode: 'MarkdownV2'
+                    }
+                );
+            }
+        }
+
+
+        const text = `🎉 Промокод \`${ctx.session.promocode}\` в процессе создания
+
+📋 *_Детали промокода:_*
+
+• 🎟️ Промокод: \`${ctx.session.promocode}\`
+• ⚙️ Тип промокода: ━━
+• 💸 Скидка: ━━
+• 💸 Мин. сумма для активации: ━━
+• 📅 Мин. кол-во месяцев для активации:: ━━
+• 📅 Действителен до: ━━
+• 🔢 Всего использований: ━━
+• 👤 На одного пользователя: ━━
+\n━━━━━━━━━━\n
+⚠️ *Примечание:* _Выберите тип промокода_ .
+`;
+        const keyboard = {
+            inline_keyboard: [
+                [
+                    {
+                        text: "% Процентный",
+                        callback_data: "promocode_type_percent"
+                    },
+                    {
+                        text: "₽ Фиксированный",
+                        callback_data: "promocode_type_fixed"
+                    }
+                ],
+                [
+                    {
+                        text: '🔙 Назад',
+                        callback_data: 'start',
+                    }
+                ]
+            ],
+        };
+
+        if ( 'message' in ctx.update && 'text' in ctx.update.message && ctx.session.promocodeMessageId ) {
+            try {
+                await ctx.telegram.editMessageText(
+                    ctx.update.message.from.id,
+                    ctx.session.promocodeMessageId,
+                    undefined,
+                    this.telegramUtils.escapeMarkdown(text),
+                    { reply_markup: keyboard, parse_mode: 'MarkdownV2' }
+                );
+
+            } catch ( e ) {
+                console.log(e);
+            }
+        } else {
+            await this.telegramUtils.sendOrEditMessage(ctx, text, keyboard);
+
+        }
+
+
+        ctx.session.promocodeMessageId = null;
     }
 }

@@ -1,3 +1,5 @@
+import * as dayjs from 'dayjs'
+import * as customParseFormat from 'dayjs/plugin/customParseFormat'
 import { PrismaService } from "nestjs-prisma";
 import { Action, Command, Ctx, On, Start, Update } from 'nestjs-telegraf';
 import { CallbackQuery } from 'telegraf/types';
@@ -6,13 +8,22 @@ import {
     MyContext,
     StepsEnum
 } from './interfaces/telegram.interface';
+import { EighthLevelService } from "./levels/Eighth/eighth_level.service";
+import { EleventhLevelService } from "./levels/Eleventh/elventh_level.service";
 import { FifthLevelService } from "./levels/Fifth/fifth_level.service";
 import { FirstLevelService } from "./levels/First/first_level.service";
 import { FourthLevelService } from "./levels/Fourth/fourth_level.service";
+import { NinthLevelService } from "./levels/Ninth/ninth_level.service";
 import { SecondLevelService } from "./levels/Second/second_level.service";
+import { SeventhLevelService } from "./levels/Seventh/seventh_level.service";
 import { SixthLevelService } from "./levels/Sixth/sixth_level.service";
-import { ThirdLevelService } from "./levels/Third/third_service.service";
+import { TenthLevelService } from "./levels/Tenth/tenth_level.service";
+import { ThirdLevelService } from "./levels/Third/third_level.service";
+import { TwelfthLevelService } from "./levels/Twelfth/twelfth_level.service";
 import { CloudPaymentsService } from "./services/cloudpayments.service";
+
+dayjs.extend(customParseFormat)
+dayjs.locale("ru");
 
 @Update()
 export class TelegramUpdate {
@@ -23,7 +34,14 @@ export class TelegramUpdate {
         private readonly fourthLevelService: FourthLevelService,
         private readonly fifthLevelService: FifthLevelService,
         private readonly sixthLevelService: SixthLevelService,
-        private readonly cloudPaymentsService: CloudPaymentsService
+        private readonly seventhLevelService: SeventhLevelService,
+        private readonly eighthLevelService: EighthLevelService,
+        private readonly ninthLevelService: NinthLevelService,
+        private readonly tenthLevelService: TenthLevelService,
+        private readonly eleventhLevelService: EleventhLevelService,
+        private readonly twelfthLevelService: TwelfthLevelService,
+        private readonly cloudPaymentsService: CloudPaymentsService,
+        private readonly prismaService: PrismaService,
     ) {
     }
 
@@ -31,10 +49,11 @@ export class TelegramUpdate {
         return query?.data !== undefined;
     }
 
+
     @Action('start')
     async handleStart( @Ctx() ctx: MyContext ) {
         await ctx.answerCbQuery()
-        ctx.session.step = null;
+
         await this.firstLevelService.handleStart(ctx);
     }
 
@@ -46,13 +65,11 @@ export class TelegramUpdate {
 
     @Start()
     async onStart( @Ctx() ctx: MyContext ) {
-        ctx.session.step = null;
         await this.firstLevelService.handleStart(ctx);
     }
 
     @Command('clear')
     async clearSession( @Ctx() ctx: MyContext ) {
-        ctx.session = { step: null, promocode: '' }
         await ctx.reply('Сессия очищена')
     }
 
@@ -78,30 +95,143 @@ export class TelegramUpdate {
         await this.secondLevelService.handleBuyToken(ctx);
     }
 
-    @Action('settings')
-    async handleSettings( @Ctx() ctx: MyContext ) {
-        await ctx.answerCbQuery()
-        await this.secondLevelService.handleSettings(ctx)
+    @Action('handle_add_promocode')
+    async handleAddPromoCode( @Ctx() ctx: MyContext ) {
+        await ctx.answerCbQuery();
+        await this.thirdLevelService.handleAddPromocode(ctx)
     }
 
-    @Command('settings')
-    async onSettings( @Ctx() ctx: MyContext ) {
-        await this.secondLevelService.handleSettings(ctx)
+    @Action('handle_show_promocodes')
+    async handleShowPromoCodes( @Ctx() ctx: MyContext ) {
+        await ctx.answerCbQuery();
+        await this.thirdLevelService.handleShowPromocodes(ctx);
     }
 
 
     @On('text')
-    async onMessage( ctx: MyContext ) {
-        if ( ctx.session.step === StepsEnum.PROMOCODE && 'message' in ctx.update && 'text' in ctx.update.message ) {
-            ctx.session.promocode = ctx.update.message.text;
-            ctx.session.step = null
+    async onMessage( @Ctx() ctx: MyContext ) {
+        if ( 'message' in ctx.update && 'text' in ctx.update.message ) {
+            switch ( ctx.session.step ) {
+                case (StepsEnum.PROMOCODE):
+                    await this.fourthLevelService.handleChooseTypePromocode(ctx)
+                    await ctx.deleteMessage(ctx.update.message.message_id);
+                    break;
 
-            await ctx.reply(`Промокод введен успешно \`${ctx.session.promocode}\``, {
-                parse_mode: 'MarkdownV2'
-            })
-            await this.secondLevelService.handleBuyToken(ctx)
+                case (StepsEnum.PROMOCODE_VALUE):
+                    await this.sixthLevelService.handleMinOrderAmount(ctx)
+                    await ctx.deleteMessage(ctx.update.message.message_id);
+                    break;
+
+                case (StepsEnum.PROMOCODE_MIN_ORDER_AMOUNT):
+                    await this.seventhLevelService.handleMinMonthsOrderAmount(ctx)
+                    await ctx.deleteMessage(ctx.update.message.message_id);
+                    break;
+
+                case (StepsEnum.PROMOCODE_EXPIRED_DATE):
+                    await this.ninthLevelService.handleChooseAvailableCountUses(ctx)
+                    await ctx.deleteMessage(ctx.update.message.message_id);
+                    break;
+
+                case StepsEnum.PROMOCODE_AVAILABLE_COUNT_USES:
+                    await this.tenthLevelService.handleChooseMaxUsesPerUser(ctx)
+                    await ctx.deleteMessage(ctx.update.message.message_id);
+                    break;
+
+                case StepsEnum.PROMOCODE_MAX_USES_PER_USER:
+                    await this.eleventhLevelService.handleCheckPromocode(ctx)
+                    await ctx.deleteMessage(ctx.update.message.message_id);
+                    break;
+                case StepsEnum.ENTER_PROMOCODE:
+                    const promocode = await this.prismaService.promocode.findUnique({
+                        where: {
+                            promocode: ctx.update.message.text
+                        },
+                        include: {
+                            uses: {
+                                where: {
+                                    user: {
+                                        telegramId: String(ctx.update.message.from.id)
+                                    }
+                                }
+                            }
+                        }
+                    })
+
+                    await this.eighthLevelService.handleShowPromocodeDetails(ctx, promocode)
+                    await ctx.deleteMessage(ctx.update.message.message_id);
+                    break;
+            }
+
+
         }
     }
+
+    @Action('handle_choose_type_promocode')
+    async handleChooseTypePromocode( @Ctx() ctx: MyContext ) {
+        await ctx.answerCbQuery();
+        await this.fourthLevelService.handleChooseTypePromocode(ctx)
+    }
+
+
+    @Action(/^promocode_type_(percent|fixed)/)
+    async handleChooseValue( ctx: MyContext ) {
+        await ctx.answerCbQuery();
+
+        ctx.session.promocodeType = ctx.match[1] as 'percent' | 'fixed';
+        await this.fifthLevelService.handleChooseValue(ctx)
+    }
+
+    @Action(/^choose_value_(\d+)$/)
+    async handleMinOrderAmount( ctx: MyContext ) {
+        ctx.session.promocodeValue = ctx.match[1]
+        await ctx.answerCbQuery();
+        await this.sixthLevelService.handleMinOrderAmount(ctx)
+    }
+
+    @Action(/^choose_min_order_amount_(\d+)$/)
+    async handleMinMonthsOrderAmount( ctx: MyContext ) {
+        ctx.session.promocodeMinOrderAmount = ctx.match[1]
+        await ctx.answerCbQuery();
+        await this.seventhLevelService.handleMinMonthsOrderAmount(ctx)
+    }
+
+    @Action(/^choose_min_months_order_amount_(\d+)$/)
+    async handleChooseExpiredDate( @Ctx() ctx: MyContext ) {
+        ctx.session.promocodeMinMonthsOrderAmount = ctx.match[1]
+        await ctx.answerCbQuery()
+        await this.eighthLevelService.handleChooseExpiredDate(ctx)
+    }
+
+    @Action(/choose_expired_(1|3|6|9|12)$/)
+    async handleChooseAvailableCountUses( @Ctx() ctx: MyContext ) {
+        const months = ctx.match[1]
+        ctx.session.promocodeExpiredDate = dayjs().add(months, 'months').toDate()
+        ctx.session.promocodeExpiredMonths = months
+        await ctx.answerCbQuery();
+        await this.ninthLevelService.handleChooseAvailableCountUses(ctx)
+    }
+
+    @Action(/^choose_available_count_uses_(\d+)$/)
+    async handleChooseMaxUsesPerUser( ctx: MyContext ) {
+        ctx.session.promocodeAvailableCountUses = ctx.match[1]
+        await ctx.answerCbQuery();
+        await this.tenthLevelService.handleChooseMaxUsesPerUser(ctx)
+    }
+
+    @Action(/^choose_max_uses_per_user_(\d+)$/)
+    async handleCheckPromocode( @Ctx() ctx: MyContext ) {
+        ctx.session.promocodeMaxUsesPerUser = ctx.match[1]
+        await ctx.answerCbQuery();
+        await this.eleventhLevelService.handleCheckPromocode(ctx)
+    }
+
+
+    @Action('create_promocode')
+    async handleCreatePromocode( ctx: MyContext ) {
+        await ctx.answerCbQuery();
+        await this.twelfthLevelService.handleCreatePromocode(ctx)
+    }
+
 
     @Action('faq')
     async handleFaq( @Ctx() ctx: MyContext ) {
@@ -125,16 +255,30 @@ export class TelegramUpdate {
     }
 
     @Action(/^deviceRangeId_(1|2|3)$/)
-    async handleViewPlan( @Ctx() ctx: MyContext ) {
+    async handleViewChosenPlan( @Ctx() ctx: MyContext ) {
         await ctx.answerCbQuery();
         await this.sixthLevelService.handleViewChosenPlan(ctx)
     }
 
-    // @Action('payment_history')
-    // async handlePaymentHistory( @Ctx() ctx: MyContext ) {
-    //     await ctx.answerCbQuery();
-    //     await this.fourthLevelService.handlePaymentHistory(ctx);
-    // }
+    @Action('write_promocode')
+    async handleWritePromocode( @Ctx() ctx: MyContext ) {
+        await ctx.answerCbQuery();
+        await this.seventhLevelService.handleWritePromocode(ctx)
+    }
+
+    @Action(/^take_promocode_(1|2|3)$/)
+    async handleTakePromocode( @Ctx() ctx: MyContext ) {
+        await ctx.answerCbQuery();
+        ctx.session.promocodeTakedByUser = ctx.session.promocodeEnteredByUser
+        await this.sixthLevelService.handleViewChosenPlan(ctx)
+    }
+
+    @Action(/^delete_promocode_from_order_(1|2|3)$/)
+    async handleDeletePromocodeFromOrder( @Ctx() ctx: MyContext ) {
+        ctx.session.promocodeTakedByUser = null
+        await ctx.answerCbQuery();
+        await this.sixthLevelService.handleViewChosenPlan(ctx)
+    }
 
     @Action("my_subscriptions")
     async handleMySubscriptions( @Ctx() ctx: MyContext ) {

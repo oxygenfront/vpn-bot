@@ -3,12 +3,18 @@ import { Module } from '@nestjs/common'
 import { ConfigModule, ConfigService } from '@nestjs/config'
 import { InjectBot, TelegrafModule } from 'nestjs-telegraf'
 import { Telegraf } from 'telegraf'
+import { EighthLevelService } from "./levels/Eighth/eighth_level.service";
+import { EleventhLevelService } from "./levels/Eleventh/elventh_level.service";
 import { FifthLevelService } from './levels/Fifth/fifth_level.service'
 import { FirstLevelService } from './levels/First/first_level.service'
 import { FourthLevelService } from './levels/Fourth/fourth_level.service'
+import { NinthLevelService } from "./levels/Ninth/ninth_level.service";
 import { SecondLevelService } from './levels/Second/second_level.service'
+import { SeventhLevelService } from "./levels/Seventh/seventh_level.service";
 import { SixthLevelService } from './levels/Sixth/sixth_level.service'
-import { ThirdLevelService } from './levels/Third/third_service.service'
+import { TenthLevelService } from "./levels/Tenth/tenth_level.service";
+import { ThirdLevelService } from './levels/Third/third_level.service'
+import { TwelfthLevelService } from "./levels/Twelfth/twelfth_level.service";
 import { SessionMiddleware } from './middlewares/session.middleware'
 import { CloudPaymentsService } from './services/cloudpayments.service'
 import { LinkGeneratorService } from './services/link-generator.service'
@@ -49,11 +55,17 @@ import { WebhookController } from './webhooks/webhook.controller'
         SecondLevelService,
         ThirdLevelService,
         FourthLevelService,
+        FifthLevelService,
+        SixthLevelService,
+        SeventhLevelService,
+        EighthLevelService,
+        NinthLevelService,
+        TenthLevelService,
+        EleventhLevelService,
+        TwelfthLevelService,
         XuiApiService,
         LinkGeneratorService,
         TelegramUtils,
-        FifthLevelService,
-        SixthLevelService,
         CloudPaymentsService,
         WebhookController,
     ],

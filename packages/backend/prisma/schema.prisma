@@ -23,6 +23,7 @@ model User {
   createdAt     DateTime           @default(now())
   updatedAt     DateTime           @updatedAt
   subscriptions UserSubscription[]
+  PromocodeUse  PromocodeUse[]
 }
 
 model Plan {
@@ -63,8 +64,36 @@ model UserSubscription {
   vlessLinkConnection String
   urlLinkConnection   String
   subscriptionPlanId  Int
+  usedPromocode       Promocode?       @relation(fields: [promocodeId], references: [id])
   user                User             @relation(fields: [userId], references: [id])
   subscriptionPlan    SubscriptionPlan @relation(fields: [subscriptionPlanId], references: [id])
+  promocodeId         String?
 
   @@index([userId])
+}
+
+model Promocode {
+  id                   String             @id @default(uuid())
+  promocode            String?            @unique
+  type                 String
+  value                Float
+  expiredDate          DateTime?
+  minOrderAmount       Float
+  minMonthsOrderAmount Int
+  availableCountUses   Int
+  maxUsesPerUser       Int                @default(1)
+  status               String             @default("ACTIVE") // ACTIVE, INACTIVE, DELETED
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  uses                 PromocodeUse[]
+  UserSubscription     UserSubscription[]
+}
+
+model PromocodeUse {
+  id          String    @id @default(uuid())
+  promocodeId String
+  promocode   Promocode @relation(fields: [promocodeId], references: [id])
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  usedAt      DateTime  @default(now())
 }
