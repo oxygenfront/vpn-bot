@@ -134,7 +134,7 @@ export class SixthLevelService {
         }
 
         const promocode = await getPromocode()
-        console.log(promocode);
+        console.log(promocode)
 
         const subscription = await this.prismaService.subscriptionPlan.findFirst({
             where: {
@@ -254,7 +254,7 @@ export class SixthLevelService {
                     },
                 ],
                 [
-                    ...(promocode && !(promocode?.uses.length === promocode?.maxUsesPerUser) && !ctx.session.promocodeTakedByUser
+                    ...(promocode && !(promocode?.uses.length === promocode?.maxUsesPerUser) && ctx.session.promocodeTakedByUser
                         ? [
                             {
                                 text: `❌ Удалить промо ${ctx.session.promocodeTakedByUser}`,
