@@ -86,7 +86,7 @@ export class FirstLevelService {
                     ],
                     [
                         {
-                            text: '🎟️ Создать промокод',
+                            text: '🎟️ Создать промокод deploying',
                             callback_data: 'handle_add_promocode',
                         }
 
