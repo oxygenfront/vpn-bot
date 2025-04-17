@@ -1,5 +1,19 @@
-# compiled output
-/node_modules
+*
+!dist
+!prisma
+!.env.example
+!package.json
+!tsconfig.build.json
+!tsconfig.json
+!index.html
+!tsconfig.node.json
+!tsconfig.node.tsbuildinfo
+!tsconfig.tsbuildinfo
+!vite.config.ts
+!vite.config.d.ts
+!vite.config.js
+
+node_modules
 
 # Logs
 logs
@@ -31,7 +45,7 @@ lerna-debug.log*
 .env.test.local
 .env.production.local
 .env.local
-/sessions.json
+sessions.json
 # temp directory
 .temp
 .tmp
@@ -42,8 +56,4 @@ pids
 *.seed
 *.pid.lock
 
-# Diagnostic reports (https://nodejs.org/api/report.html)
-report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
-
-/vpn-bot_data
 /.yarn
