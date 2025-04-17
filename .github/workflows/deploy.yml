@@ -3,7 +3,7 @@ name: Deploy VPN by Oxygen Bot
 on:
   push:
     branches:
-      - main
+      - master
 
 jobs:
   deploy:
