@@ -127,13 +127,14 @@ export class SixthLevelService {
                     }
                 }
             })
-            if ( !promocode || promocode.uses.length === promocode.maxUsesPerUser || (ctx.session.selectedMonths as number) < promocode.minMonthsOrderAmount ) {
+            if ( !promocode || promocode.uses.length === promocode.maxUsesPerUser || (ctx.session.selectedMonths as number) < promocode.minMonthsOrderAmount || !ctx.session.promocodeTakedByUser ) {
                 return null
             }
             return promocode
         }
 
         const promocode = await getPromocode()
+        console.log(promocode);
 
         const subscription = await this.prismaService.subscriptionPlan.findFirst({
             where: {
@@ -209,7 +210,6 @@ export class SixthLevelService {
                 ? Math.round(finalPrice)
                 : Math.round(finalPrice / months);
         };
-        console.log(subscription.price);
 
         const plan = await this.prismaService.subscriptionPlan.findFirst({
             where: {
@@ -217,6 +217,8 @@ export class SixthLevelService {
                 months: ctx.session.selectedMonths,
             },
         })
+
+
         const randomNumber = Math.floor(1000000000 + Math.random() * 9000000000)
         const messageId = 'callback_query' in ctx.update && ctx.update.callback_query.message?.message_id
         const paymentAccountId = 'callback_query' in ctx.update && ctx.update.callback_query.from.id
@@ -252,7 +254,7 @@ export class SixthLevelService {
                     },
                 ],
                 [
-                    ...(promocode && !(promocode?.uses.length === promocode?.maxUsesPerUser) || !ctx.session.promocodeTakedByUser
+                    ...(promocode && !(promocode?.uses.length === promocode?.maxUsesPerUser) && !ctx.session.promocodeTakedByUser
                         ? [
                             {
                                 text: `❌ Удалить промо ${ctx.session.promocodeTakedByUser}`,
