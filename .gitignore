@@ -1,12 +1,26 @@
-*
+node_modules
 
-!packages/**/dist/
-!packages/**/dist/**/*
-!packages/**/package.json
-!packages/**/package-lock.json
-!.gitignore
-!.github/
-!.github/**/*
+/packages/backend/interfaces
+/packages/backend/levels
+/packages/backend/middlewares
+/packages/backend/utils
+/packages/backend/webhooks
+/packages/backend/services
+
+
+/packages/backend/nest-cli.json
+/packages/backend/main.ts
+/packages/backend/app.module.ts
+/packages/backend/telegram.module.ts
+/packages/backend/telegram.update.ts
+
+/packages/frontend/src
+/packages/frontend/biome.formatter.json
+/packages/frontend/biome.json
+/packages/frontend/biome.linter.json
+/packages/frontend/index.html
+
+
 
 # Logs
 logs
