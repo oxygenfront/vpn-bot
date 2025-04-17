@@ -85,7 +85,7 @@ let FirstLevelService = class FirstLevelService {
                     ],
                     [
                         {
-                            text: '🎟️ Создать промокод',
+                            text: '🎟️ Check deploy',
                             callback_data: 'handle_add_promocode',
                         }
                     ],
