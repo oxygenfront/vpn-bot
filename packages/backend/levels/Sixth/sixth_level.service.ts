@@ -127,7 +127,7 @@ export class SixthLevelService {
                     }
                 }
             })
-            if ( promocode?.uses.length === promocode?.maxUsesPerUser ) {
+            if ( !promocode || promocode.uses.length === promocode.maxUsesPerUser || (ctx.session.selectedMonths as number) < promocode.minMonthsOrderAmount ) {
                 return null
             }
             return promocode
@@ -170,13 +170,11 @@ export class SixthLevelService {
         }
 
         const getPrice = ( full: boolean = false ): number => {
-            // Проверяем наличие selectedMonths
             if ( !ctx.session.selectedMonths ) {
                 throw new Error('Количество месяцев не указано');
             }
             const months = ctx.session.selectedMonths as number;
 
-            // Проверяем, что subscription.price определён
             if ( typeof subscription.price !== 'number' ) {
                 throw new Error('Цена подписки не указана или некорректна');
             }
@@ -254,7 +252,7 @@ export class SixthLevelService {
                     },
                 ],
                 [
-                    ...(promocode && !(promocode?.uses.length === promocode.maxUsesPerUser)
+                    ...(promocode && !(promocode?.uses.length === promocode?.maxUsesPerUser) || !ctx.session.promocodeTakedByUser
                         ? [
                             {
                                 text: `❌ Удалить промо ${ctx.session.promocodeTakedByUser}`,
