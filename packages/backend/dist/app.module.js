@@ -11,6 +11,7 @@ const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
 const nestjs_prisma_1 = require("nestjs-prisma");
 const telegram_module_1 = require("./telegram.module");
+const health_controller_1 = require("./utils/health.controller");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -29,7 +30,7 @@ exports.AppModule = AppModule = __decorate([
             }),
             telegram_module_1.TelegramModule
         ],
-        controllers: [],
+        controllers: [health_controller_1.HealthController],
         providers: []
     })
 ], AppModule);
