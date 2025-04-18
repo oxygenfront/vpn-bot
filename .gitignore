@@ -1,5 +1,7 @@
 node_modules
 
+update.sh
+
 /packages/backend/interfaces
 /packages/backend/levels
 /packages/backend/middlewares
