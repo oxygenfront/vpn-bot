@@ -18,7 +18,18 @@ jobs:
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -p ${{ secrets.SSH_PORT }} -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+          echo "SSH setup completed"
 
-      - name: Execute deploy.sh
+      - name: Execute update.sh && deploy.sh
         run: |
-          ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.WORK_DIR }} && bash deploy.sh"
+          ssh -o StrictHostKeyChecking=no -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+            cd ${{ secrets.WORK_DIR }} || { echo "Ошибка: Не удалось перейти в ${{ secrets.WORK_DIR }}"; exit 1; }
+            echo "Запуск update.sh"
+            chmod +x update.sh
+            bash update.sh || { echo "Ошибка: update.sh завершился с ошибкой"; exit 1; }
+            echo "Запуск deploy.sh"
+            chmod +x deploy.sh  
+            bash deploy.sh || { echo "Ошибка: deploy.sh завершился с ошибкой"; exit 1; }
+            echo "Деплой успешно завершён"
+          EOF
+        continue-on-error: false
