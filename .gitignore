@@ -1,6 +1,7 @@
 node_modules
 
 update.sh
+monitor.sh
 
 /packages/backend/interfaces
 /packages/backend/levels
