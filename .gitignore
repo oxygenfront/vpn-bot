@@ -20,8 +20,6 @@ node_modules
 /packages/frontend/biome.linter.json
 /packages/frontend/index.html
 
-deploy.sh
-
 # Logs
 logs
 *.log
