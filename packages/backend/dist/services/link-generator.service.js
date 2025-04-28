@@ -11,15 +11,13 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.LinkGeneratorService = void 0;
 const common_1 = require("@nestjs/common");
-const telegram_utils_1 = require("../utils/telegram-utils");
 let LinkGeneratorService = class LinkGeneratorService {
-    constructor(telegramUtils) {
-        this.telegramUtils = telegramUtils;
+    constructor() {
     }
-    generateConnectionLinks(client, streamSettings) {
+    generateConnectionLinks(client, streamSettings, inboundPort) {
         const settings = JSON.parse(streamSettings);
         const ip = process.env.PANEL_HOST.split('//')[1];
-        const vlessLink = `vless://${client.id}@${ip}:27976?type=${settings.network}&security=${settings.security}&pbk=${settings.realitySettings.settings.publicKey}&fp=${settings.realitySettings.settings.fingerprint}&sni=${settings.realitySettings.serverNames[0]}&sid=${settings.realitySettings.shortIds[0]}&spx=${encodeURIComponent(settings.realitySettings.settings.spiderX)}#Sell-${client.email}`;
+        const vlessLink = `vless://${client.id}@${ip}:${inboundPort}?type=${settings.network}&security=${settings.security}&pbk=${settings.realitySettings.settings.publicKey}&fp=${settings.realitySettings.settings.fingerprint}&sni=${settings.realitySettings.serverNames[0]}&sid=${settings.realitySettings.shortIds[0]}&spx=${encodeURIComponent(settings.realitySettings.settings.spiderX)}#Sell-${client.email}`;
         const urlLink = `${process.env.PANEL_HOST}:2096/sub/${client.subId}`;
         return { vlessLink, urlLink };
     }
@@ -27,6 +25,6 @@ let LinkGeneratorService = class LinkGeneratorService {
 exports.LinkGeneratorService = LinkGeneratorService;
 exports.LinkGeneratorService = LinkGeneratorService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [telegram_utils_1.TelegramUtils])
+    __metadata("design:paramtypes", [])
 ], LinkGeneratorService);
 //# sourceMappingURL=link-generator.service.js.map

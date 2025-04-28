@@ -30,7 +30,7 @@ let XuiApiService = class XuiApiService {
         }));
         return response.headers['set-cookie']?.find((cookie) => cookie.startsWith('3x-ui='));
     }
-    async getOrCreateClient({ sessionCookie, username, tgId, inboundId = 2, expiredDays, limit, limitIp }) {
+    async getOrCreateClient({ sessionCookie, username, tgId, inboundId = 1, expiredDays, limit, limitIp }) {
         const inboundResponse = await (0, rxjs_1.firstValueFrom)(this.httpService.get(`${process.env.PANEL_LINK}/panel/api/inbounds/get/${inboundId}`, {
             headers: {
                 'Cookie': sessionCookie,
@@ -38,8 +38,8 @@ let XuiApiService = class XuiApiService {
             },
             withCredentials: true
         }));
-        const { settings, streamSettings } = inboundResponse.data.obj;
-        const { password, clients } = JSON.parse(settings);
+        const { settings, streamSettings, port: inboundPort } = inboundResponse.data.obj;
+        const { clients } = JSON.parse(settings);
         let client = clients.find((c) => c.email === username);
         const gbLimit = limit * 1024 * 1024 * 1024;
         if (!client) {
@@ -74,7 +74,7 @@ let XuiApiService = class XuiApiService {
                 throw new Error(`Не удалось создать пользователя: ${addClientResponse.data.msg}`);
             }
         }
-        return { client, inboundPassword: password, streamSettings };
+        return { client, streamSettings, inboundPort: inboundPort };
     }
 };
 exports.XuiApiService = XuiApiService;

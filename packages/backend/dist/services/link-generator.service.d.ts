@@ -1,8 +1,6 @@
-import { TelegramUtils } from "../utils/telegram-utils";
 export declare class LinkGeneratorService {
-    private readonly telegramUtils;
-    constructor(telegramUtils: TelegramUtils);
-    generateConnectionLinks(client: any, streamSettings: any): {
+    constructor();
+    generateConnectionLinks(client: any, streamSettings: any, inboundPort: number): {
         vlessLink: string;
         urlLink: string;
     };
