@@ -2,6 +2,7 @@ node_modules
 
 update.sh
 monitor.sh
+clean-logs.sh
 
 /packages/backend/interfaces
 /packages/backend/levels
@@ -69,3 +70,4 @@ pids
 *.pid.lock
 
 /.yarn
+.env.monitor
