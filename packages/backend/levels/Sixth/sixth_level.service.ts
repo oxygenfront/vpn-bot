@@ -134,7 +134,6 @@ export class SixthLevelService {
         }
 
         const promocode = await getPromocode()
-        console.log(promocode)
 
         const subscription = await this.prismaService.subscriptionPlan.findFirst({
             where: {
@@ -215,6 +214,7 @@ export class SixthLevelService {
             where: {
                 price: subscription.price,
                 months: ctx.session.selectedMonths,
+                deviceRangeId: ctx.session.deviceRangeId,
             },
         })
 

@@ -6,7 +6,8 @@ import { TelegramModule } from "./telegram.module";
 @Module({
     imports: [
         ConfigModule.forRoot({
-            isGlobal: true
+            isGlobal: true,
+            envFilePath: `.env.${process.env.NODE_ENV || 'development'}`
         }),
         PrismaModule.forRoot({
             isGlobal: true,

@@ -42,7 +42,7 @@ export class XuiApiService {
                                  sessionCookie,
                                  username,
                                  tgId,
-                                 inboundId = 2,
+                                 inboundId = 1,
                                  expiredDays,
                                  limit,
                                  limitIp
