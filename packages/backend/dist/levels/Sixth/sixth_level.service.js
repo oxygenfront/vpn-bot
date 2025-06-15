@@ -126,7 +126,6 @@ let SixthLevelService = class SixthLevelService {
             return promocode;
         };
         const promocode = await getPromocode();
-        console.log(promocode);
         const subscription = await this.prismaService.subscriptionPlan.findFirst({
             where: {
                 planId: ctx.session.selectedPlan,
@@ -195,6 +194,7 @@ let SixthLevelService = class SixthLevelService {
             where: {
                 price: subscription.price,
                 months: ctx.session.selectedMonths,
+                deviceRangeId: ctx.session.deviceRangeId,
             },
         });
         const randomNumber = Math.floor(1000000000 + Math.random() * 9000000000);

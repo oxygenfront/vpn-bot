@@ -14,8 +14,8 @@ export declare class XuiApiService {
     login(): Promise<string | undefined>;
     getOrCreateClient({ sessionCookie, username, tgId, inboundId, expiredDays, limit, limitIp }: IGetOrCreateClient): Promise<{
         client: any;
+        inboundPassword: any;
         streamSettings: any;
-        inboundPort: number;
     }>;
 }
 export {};

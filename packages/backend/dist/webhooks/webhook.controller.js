@@ -70,7 +70,7 @@ let WebhookController = class WebhookController {
                             await this.bot.telegram.sendMessage(chatId, 'Ошибка: тарифный план не найден.');
                             return { code: 0 };
                         }
-                        const { client, streamSettings, inboundPort } = await this.xuiApiService.getOrCreateClient({
+                        const { client, streamSettings } = await this.xuiApiService.getOrCreateClient({
                             sessionCookie,
                             username,
                             tgId,
@@ -115,7 +115,7 @@ let WebhookController = class WebhookController {
                         const expiredDate = response
                             ? dayjs(response.expiredDate).add(boughtPlan.months, 'month').toDate()
                             : dayjs().add(boughtPlan.months, 'month').toDate();
-                        const { vlessLink, urlLink } = this.linkGeneratorService.generateConnectionLinks(client, streamSettings, inboundPort);
+                        const { vlessLink, urlLink } = this.linkGeneratorService.generateConnectionLinks(client, streamSettings);
                         await this.prismaService.$transaction(async (prisma) => {
                             const userSubscription = await prisma.userSubscription.upsert({
                                 where: {

@@ -38,8 +38,8 @@ let XuiApiService = class XuiApiService {
             },
             withCredentials: true
         }));
-        const { settings, streamSettings, port: inboundPort } = inboundResponse.data.obj;
-        const { clients } = JSON.parse(settings);
+        const { settings, streamSettings } = inboundResponse.data.obj;
+        const { password, clients } = JSON.parse(settings);
         let client = clients.find((c) => c.email === username);
         const gbLimit = limit * 1024 * 1024 * 1024;
         if (!client) {
@@ -74,7 +74,7 @@ let XuiApiService = class XuiApiService {
                 throw new Error(`Не удалось создать пользователя: ${addClientResponse.data.msg}`);
             }
         }
-        return { client, streamSettings, inboundPort: inboundPort };
+        return { client, inboundPassword: password, streamSettings };
     }
 };
 exports.XuiApiService = XuiApiService;
